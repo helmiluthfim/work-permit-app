@@ -261,62 +261,148 @@ export default function JobTemplatePage() {
               </div>
 
               {/* Seksi HIRARC */}
-              <div className="bg-red-50/50 p-4 rounded-lg border border-red-100">
-                <h3 className="font-bold text-red-800 border-b border-red-200 pb-2 mb-3">
-                  3. HIRARC
+              <div className="bg-red-50/40 p-5 rounded-xl border border-red-100">
+                <h3 className="font-bold text-red-800 border-b border-red-200 pb-3 mb-4 text-lg">
+                  3. Identifikasi Bahaya & Pengendalian Resiko (HIRARC)
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  <div>
-                    <span className="text-xs font-semibold text-gray-500 uppercase">
-                      Potensi Bahaya
-                    </span>
-                    {renderList(selectedJob.hirarcTemplate?.potensiBahaya)}
+
+                {!selectedJob.hirarcTemplate?.potensiBahaya ||
+                selectedJob.hirarcTemplate.potensiBahaya.length === 0 ? (
+                  <p className="text-sm text-gray-500 italic bg-white p-4 rounded border border-gray-200 text-center">
+                    Data HIRARC belum tersedia untuk template ini.
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {selectedJob.hirarcTemplate.potensiBahaya.map(
+                      (potensi: string, index: number) => {
+                        // Alias untuk mempersingkat pemanggilan object
+                        const h = selectedJob.hirarcTemplate;
+
+                        // Handle array status (jika di DB tersimpan sbg string digabung koma, kita pecah)
+                        const statusArray =
+                          h.statusPengendalian &&
+                          typeof h.statusPengendalian === "string"
+                            ? h.statusPengendalian.split(", ")
+                            : Array.isArray(h.statusPengendalian)
+                              ? h.statusPengendalian
+                              : [];
+
+                        return (
+                          <div
+                            key={index}
+                            className="bg-white border border-red-100 rounded-xl p-5 shadow-sm relative transition-all hover:shadow-md"
+                          >
+                            {/* Badge Nomor */}
+                            <div className="absolute top-4 right-4 bg-red-100 text-red-800 text-xs font-black w-7 h-7 flex items-center justify-center rounded-full">
+                              {index + 1}
+                            </div>
+
+                            {/* Baris 1: Detail Bahaya */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-5 pr-10">
+                              <div>
+                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                                  Potensi Bahaya
+                                </span>
+                                <p className="text-sm font-semibold text-gray-900 whitespace-pre-wrap">
+                                  {potensi || "-"}
+                                </p>
+                              </div>
+                              <div>
+                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                                  Resiko
+                                </span>
+                                <p className="text-sm font-semibold text-gray-900 whitespace-pre-wrap">
+                                  {h.resiko?.[index] || "-"}
+                                </p>
+                              </div>
+                              <div>
+                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                                  Tindakan Pengendalian
+                                </span>
+                                <p className="text-sm font-semibold text-gray-900 whitespace-pre-wrap">
+                                  {h.pengendalian?.[index] || "-"}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Baris 2: Kotak Skor */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="bg-red-50/50 p-3 rounded-lg border border-red-100 flex justify-between items-center text-sm">
+                                <span className="text-[10px] font-bold text-red-500 uppercase">
+                                  Skor Awal
+                                </span>
+                                <p className="text-gray-700">
+                                  S:{" "}
+                                  <span className="font-semibold">
+                                    {h.konsekuensiKeparahan?.[index] || "-"}
+                                  </span>{" "}
+                                  <span className="text-gray-300 mx-1">|</span>
+                                  P:{" "}
+                                  <span className="font-semibold">
+                                    {h.kemungkinanTerjadi?.[index] || "-"}
+                                  </span>{" "}
+                                  <span className="text-gray-300 mx-1">|</span>
+                                  Lvl:{" "}
+                                  <span className="font-black text-red-600">
+                                    {h.tingkatResiko?.[index] || "-"}
+                                  </span>
+                                </p>
+                              </div>
+
+                              <div className="bg-green-50/50 p-3 rounded-lg border border-green-100 flex justify-between items-center text-sm">
+                                <span className="text-[10px] font-bold text-green-600 uppercase">
+                                  Skor Sbl. Pengendalian
+                                </span>
+                                <p className="text-gray-700">
+                                  S:{" "}
+                                  <span className="font-semibold">
+                                    {h.konsekuensiSetelahPengendalian?.[
+                                      index
+                                    ] || "-"}
+                                  </span>{" "}
+                                  <span className="text-gray-300 mx-1">|</span>
+                                  P:{" "}
+                                  <span className="font-semibold">
+                                    {h.kemungkinanTerjadiSetelahPengendalian?.[
+                                      index
+                                    ] || "-"}
+                                  </span>{" "}
+                                  <span className="text-gray-300 mx-1">|</span>
+                                  Lvl:{" "}
+                                  <span className="font-black text-green-600">
+                                    {h.tingkatResikoSetelahPengendalian?.[
+                                      index
+                                    ] || "-"}
+                                  </span>
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Baris 3: PIC dan Status */}
+                            <div className="mt-4 pt-4 border-t border-gray-100 flex gap-6 text-xs">
+                              <p>
+                                <span className="font-bold text-gray-400 uppercase mr-1">
+                                  Penanggung Jawab:
+                                </span>
+                                <span className="font-semibold text-blue-700">
+                                  {h.penanggungJawab?.[index] || "-"}
+                                </span>
+                              </p>
+                              <p>
+                                <span className="font-bold text-gray-400 uppercase mr-1">
+                                  Status:
+                                </span>
+                                <span className="font-semibold text-gray-800">
+                                  {statusArray[index] || "-"}
+                                </span>
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      },
+                    )}
                   </div>
-                  <div>
-                    <span className="text-xs font-semibold text-gray-500 uppercase">
-                      Resiko
-                    </span>
-                    {renderList(selectedJob.hirarcTemplate?.resiko)}
-                  </div>
-                  <div>
-                    <span className="text-xs font-semibold text-gray-500 uppercase">
-                      Pengendalian Awal
-                    </span>
-                    {renderList(selectedJob.hirarcTemplate?.pengendalian)}
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-3 rounded border border-red-100 text-sm">
-                  <div>
-                    <p>
-                      <span className="font-semibold">Skor Awal:</span> S:
-                      {selectedJob.hirarcTemplate?.konsekuensiKeparahan?.[0] ||
-                        "-"}{" "}
-                      | P:
-                      {selectedJob.hirarcTemplate?.kemungkinanTerjadi?.[0] ||
-                        "-"}{" "}
-                      | Tingkat:{" "}
-                      <span className="font-bold text-red-600">
-                        {selectedJob.hirarcTemplate?.tingkatResiko?.[0] || "-"}
-                      </span>
-                    </p>
-                  </div>
-                  <div>
-                    <p>
-                      <span className="font-semibold">Skor Akhir:</span> S:
-                      {selectedJob.hirarcTemplate
-                        ?.konsekuensiSetelahPengendalian?.[0] || "-"}{" "}
-                      | P:
-                      {selectedJob.hirarcTemplate
-                        ?.kemungkinanTerjadiSetelahPengendalian?.[0] ||
-                        "-"}{" "}
-                      | Tingkat:{" "}
-                      <span className="font-bold text-green-600">
-                        {selectedJob.hirarcTemplate
-                          ?.tingkatResikoSetelahPengendalian?.[0] || "-"}
-                      </span>
-                    </p>
-                  </div>
-                </div>
+                )}
               </div>
 
               {/* Seksi SOP */}

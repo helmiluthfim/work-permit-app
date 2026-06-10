@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use } from "react"; // 1. Impor 'use' dari react jika pakai Next.js 15
 import { useRouter } from "next/navigation";
+import { Plus, Trash2 } from "lucide-react";
 
 const TABS = [
   { id: "info", label: "1. Info Utama" },
@@ -36,28 +37,70 @@ export default function EditJobTemplatePage({
   const [wpKlasifikasi, setWpKlasifikasi] = useState("");
   const [wpProsedur, setWpProsedur] = useState("");
   const [wpLampiran, setWpLampiran] = useState("");
+
   const [jsaLangkah, setJsaLangkah] = useState("");
   const [jsaBahaya, setJsaBahaya] = useState("");
   const [jsaPengendalian, setJsaPengendalian] = useState("");
-  const [hirarcPotensi, setHirarcPotensi] = useState("");
-  const [hirarcResiko, setHirarcResiko] = useState("");
-  const [hirarcKeparahan, setHirarcKeparahan] = useState("");
-  const [hirarcKemungkinan, setHirarcKemungkinan] = useState("");
-  const [hirarcTingkat, setHirarcTingkat] = useState("");
-  const [hirarcPengendalian, setHirarcPengendalian] = useState("");
-  const [hirarcKeparahanSetelah, setHirarcKeparahanSetelah] = useState("");
-  const [hirarcKemungkinanSetelah, setHirarcKemungkinanSetelah] = useState("");
-  const [hirarcTingkatSetelah, setHirarcTingkatSetelah] = useState("");
-  const [hirarcStatusPengendalian, setHirarcStatusPengendalian] = useState("");
-  const [hirarcPenanggungJawab, setHirarcPenanggungJawab] = useState("");
+
+  // --- STATE HIRARC BARU ---
+  const [hirarcList, setHirarcList] = useState([
+    {
+      potensi: "",
+      resiko: "",
+      pengendalian: "",
+      penanggungJawab: "",
+      keparahan: "",
+      kemungkinan: "",
+      tingkat: "",
+      keparahanSetelah: "",
+      kemungkinanSetelah: "",
+      tingkatSetelah: "",
+      statusPengendalian: "",
+    },
+  ]);
+
   const [sopPerlengkapan, setSopPerlengkapan] = useState("");
   const [sopAlatUkur, setSopAlatUkur] = useState("");
   const [sopAlatKerja, setSopAlatKerja] = useState("");
   const [sopUraian, setSopUraian] = useState("");
+
   const [ikPerlengkapan, setIkPerlengkapan] = useState("");
   const [ikAlatUkur, setIkAlatUkur] = useState("");
   const [ikAlatKerja, setIkAlatKerja] = useState("");
   const [ikUraian, setIkUraian] = useState("");
+
+  // Fungsi update field
+  const handleHirarcChange = (index: number, field: string, value: string) => {
+    const newList = [...hirarcList];
+    newList[index] = { ...newList[index], [field]: value };
+    setHirarcList(newList);
+  };
+
+  // Fungsi tambah baris
+  const addHirarcItem = () => {
+    setHirarcList([
+      ...hirarcList,
+      {
+        potensi: "",
+        resiko: "",
+        pengendalian: "",
+        penanggungJawab: "",
+        keparahan: "",
+        kemungkinan: "",
+        tingkat: "",
+        keparahanSetelah: "",
+        kemungkinanSetelah: "",
+        tingkatSetelah: "",
+        statusPengendalian: "",
+      },
+    ]);
+  };
+
+  // Fungsi hapus baris
+  const removeHirarcItem = (index: number) => {
+    const newList = hirarcList.filter((_, i) => i !== index);
+    setHirarcList(newList);
+  };
 
   const textToArray = (text: string) =>
     text
@@ -99,46 +142,77 @@ export default function EditJobTemplatePage({
           setWpProsedur(arrayToText(data.workPermitTemplate.prosedurPekerjaan));
           setWpLampiran(arrayToText(data.workPermitTemplate.lampiran));
         }
+
         if (data.jsaTemplate) {
           setJsaLangkah(arrayToText(data.jsaTemplate.langkahKerja));
           setJsaBahaya(arrayToText(data.jsaTemplate.bahayaResiko));
           setJsaPengendalian(arrayToText(data.jsaTemplate.pengendalian));
         }
-        if (data.hirarcTemplate) {
-          setHirarcPotensi(arrayToText(data.hirarcTemplate.potensiBahaya));
-          setHirarcResiko(arrayToText(data.hirarcTemplate.resiko));
-          setHirarcKeparahan(
-            arrayToText(data.hirarcTemplate.konsekuensiKeparahan),
+
+        // ==========================================================
+        // PERUBAHAN DI SINI: PEMBONGKAR DATA HIRARC MENJADI ARRAY
+        // ==========================================================
+        if (
+          data.hirarcTemplate &&
+          data.hirarcTemplate.potensiBahaya &&
+          data.hirarcTemplate.potensiBahaya.length > 0
+        ) {
+          // Cari panjang array potensi bahaya sebagai acuan jumlah kartu
+          const maxLength = data.hirarcTemplate.potensiBahaya.length;
+
+          // Jika status pengendalian sebelumnya digabung dengan koma, kita pecah lagi
+          const statusArray = data.hirarcTemplate.statusPengendalian
+            ? data.hirarcTemplate.statusPengendalian.split(", ")
+            : [];
+
+          const formattedHirarc = Array.from({ length: maxLength }).map(
+            (_, i) => ({
+              potensi: data.hirarcTemplate.potensiBahaya[i] || "",
+              resiko: data.hirarcTemplate.resiko[i] || "",
+              pengendalian: data.hirarcTemplate.pengendalian[i] || "",
+              penanggungJawab: data.hirarcTemplate.penanggungJawab[i] || "",
+              keparahan: data.hirarcTemplate.konsekuensiKeparahan[i] || "",
+              kemungkinan: data.hirarcTemplate.kemungkinanTerjadi[i] || "",
+              tingkat: data.hirarcTemplate.tingkatResiko[i] || "",
+              keparahanSetelah:
+                data.hirarcTemplate.konsekuensiSetelahPengendalian[i] || "",
+              kemungkinanSetelah:
+                data.hirarcTemplate.kemungkinanTerjadiSetelahPengendalian[i] ||
+                "",
+              tingkatSetelah:
+                data.hirarcTemplate.tingkatResikoSetelahPengendalian[i] || "",
+              statusPengendalian: statusArray[i] || "",
+            }),
           );
-          setHirarcKemungkinan(
-            arrayToText(data.hirarcTemplate.kemungkinanTerjadi),
-          );
-          setHirarcTingkat(arrayToText(data.hirarcTemplate.tingkatResiko));
-          setHirarcPengendalian(arrayToText(data.hirarcTemplate.pengendalian));
-          setHirarcKeparahanSetelah(
-            arrayToText(data.hirarcTemplate.konsekuensiSetelahPengendalian),
-          );
-          setHirarcKemungkinanSetelah(
-            arrayToText(
-              data.hirarcTemplate.kemungkinanTerjadiSetelahPengendalian,
-            ),
-          );
-          setHirarcTingkatSetelah(
-            arrayToText(data.hirarcTemplate.tingkatResikoSetelahPengendalian),
-          );
-          setHirarcStatusPengendalian(
-            data.hirarcTemplate.statusPengendalian || "",
-          );
-          setHirarcPenanggungJawab(
-            arrayToText(data.hirarcTemplate.penanggungJawab),
-          );
+
+          setHirarcList(formattedHirarc);
+        } else {
+          // Jika data kosong, tampilkan 1 kartu kosong sebagai default
+          setHirarcList([
+            {
+              potensi: "",
+              resiko: "",
+              pengendalian: "",
+              penanggungJawab: "",
+              keparahan: "",
+              kemungkinan: "",
+              tingkat: "",
+              keparahanSetelah: "",
+              kemungkinanSetelah: "",
+              tingkatSetelah: "",
+              statusPengendalian: "",
+            },
+          ]);
         }
+        // ==========================================================
+
         if (data.sopTemplate) {
           setSopPerlengkapan(arrayToText(data.sopTemplate.perlengkapanKerja));
           setSopAlatUkur(arrayToText(data.sopTemplate.peralatanUkur));
           setSopAlatKerja(arrayToText(data.sopTemplate.peralatanKerja));
           setSopUraian(arrayToText(data.sopTemplate.uraianKegiatan));
         }
+
         if (data.ikTemplate) {
           setIkPerlengkapan(arrayToText(data.ikTemplate.perlengkapanKerja));
           setIkAlatUkur(arrayToText(data.ikTemplate.peralatanUkur));
@@ -149,8 +223,6 @@ export default function EditJobTemplatePage({
         console.error("Fetch Error:", err);
         setErrorMsg(err.message);
       } finally {
-        // PENTING: ini akan dipanggil baik sukses maupun gagal,
-        // sehingga menjamin loading screen akan tertutup dan memunculkan pesan error jika gagal.
         setIsFetching(false);
       }
     };
@@ -184,19 +256,26 @@ export default function EditJobTemplatePage({
         pengendalian: textToArray(jsaPengendalian),
       },
       hirarcTemplate: {
-        potensiBahaya: textToArray(hirarcPotensi),
-        resiko: textToArray(hirarcResiko),
-        konsekuensiKeparahan: textToArray(hirarcKeparahan),
-        kemungkinanTerjadi: textToArray(hirarcKemungkinan),
-        tingkatResiko: textToArray(hirarcTingkat),
-        pengendalian: textToArray(hirarcPengendalian),
-        konsekuensiSetelahPengendalian: textToArray(hirarcKeparahanSetelah),
-        kemungkinanTerjadiSetelahPengendalian: textToArray(
-          hirarcKemungkinanSetelah,
+        potensiBahaya: hirarcList.map((h) => h.potensi),
+        resiko: hirarcList.map((h) => h.resiko),
+        pengendalian: hirarcList.map((h) => h.pengendalian),
+        penanggungJawab: hirarcList.map((h) => h.penanggungJawab),
+        konsekuensiKeparahan: hirarcList.map((h) => h.keparahan),
+        kemungkinanTerjadi: hirarcList.map((h) => h.kemungkinan),
+        tingkatResiko: hirarcList.map((h) => h.tingkat),
+        konsekuensiSetelahPengendalian: hirarcList.map(
+          (h) => h.keparahanSetelah,
         ),
-        tingkatResikoSetelahPengendalian: textToArray(hirarcTingkatSetelah),
-        statusPengendalian: hirarcStatusPengendalian,
-        penanggungJawab: textToArray(hirarcPenanggungJawab),
+        kemungkinanTerjadiSetelahPengendalian: hirarcList.map(
+          (h) => h.kemungkinanSetelah,
+        ),
+        tingkatResikoSetelahPengendalian: hirarcList.map(
+          (h) => h.tingkatSetelah,
+        ),
+        statusPengendalian: hirarcList
+          .map((h) => h.statusPengendalian)
+          .filter(Boolean)
+          .join(", "),
       },
       sopTemplate: {
         perlengkapanKerja: textToArray(sopPerlengkapan),
@@ -432,127 +511,230 @@ export default function EditJobTemplatePage({
           {/* TAB 4: HIRARC */}
           {activeTab === "hirarc" && (
             <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-              <h2 className="text-lg font-bold mb-4">Template HIRARC</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Potensi Bahaya
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={hirarcPotensi}
-                      onChange={(e) => setHirarcPotensi(e.target.value)}
-                      className="w-full border rounded-md p-2 text-sm"
-                    ></textarea>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Resiko
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={hirarcResiko}
-                      onChange={(e) => setHirarcResiko(e.target.value)}
-                      className="w-full border rounded-md p-2 text-sm"
-                    ></textarea>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Pengendalian
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={hirarcPengendalian}
-                      onChange={(e) => setHirarcPengendalian(e.target.value)}
-                      className="w-full border rounded-md p-2 text-sm"
-                    ></textarea>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Penanggung Jawab
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={hirarcPenanggungJawab}
-                      onChange={(e) => setHirarcPenanggungJawab(e.target.value)}
-                      className="w-full border rounded-md p-2 text-sm"
-                    ></textarea>
-                  </div>
-                </div>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-bold">Edit Template HIRARC</h2>
+                <button
+                  type="button"
+                  onClick={addHirarcItem}
+                  className="flex items-center gap-2 bg-blue-100 text-blue-700 px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-200 transition-colors"
+                >
+                  <Plus className="w-4 h-4" /> Tambah Potensi Bahaya
+                </button>
+              </div>
 
-                <div className="space-y-4">
-                  <div className="bg-gray-50 p-4 rounded-md border">
-                    <span className="text-xs font-bold text-gray-600 uppercase mb-2 block">
-                      Skor Awal
-                    </span>
-                    <input
-                      type="text"
-                      value={hirarcKeparahan}
-                      onChange={(e) => setHirarcKeparahan(e.target.value)}
-                      placeholder="Nilai Keparahan"
-                      className="w-full mb-2 border rounded p-2 text-sm"
-                    />
-                    <input
-                      type="text"
-                      value={hirarcKemungkinan}
-                      onChange={(e) => setHirarcKemungkinan(e.target.value)}
-                      placeholder="Nilai Kemungkinan"
-                      className="w-full mb-2 border rounded p-2 text-sm"
-                    />
-                    <input
-                      type="text"
-                      value={hirarcTingkat}
-                      onChange={(e) => setHirarcTingkat(e.target.value)}
-                      placeholder="Tingkat Resiko (Tinggi/Sedang/Rendah)"
-                      className="w-full border rounded p-2 text-sm"
-                    />
+              {/* Looping Form HIRARC */}
+              <div className="space-y-6">
+                {hirarcList.map((item, index) => (
+                  <div
+                    key={index}
+                    className="bg-gray-50 border border-gray-200 rounded-xl p-6 relative shadow-sm"
+                  >
+                    {/* Header Item & Tombol Hapus */}
+                    <div className="flex justify-between items-center mb-4 border-b border-gray-200 pb-3">
+                      <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                        <span className="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">
+                          {index + 1}
+                        </span>
+                        Identifikasi Bahaya ke-{index + 1}
+                      </h3>
+                      {hirarcList.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeHirarcItem(index)}
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors flex items-center gap-1 text-sm font-semibold"
+                        >
+                          <Trash2 className="w-4 h-4" /> Hapus
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Baris 1: Bahaya, Resiko, Pengendalian */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                          Potensi Bahaya
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={item.potensi}
+                          onChange={(e) =>
+                            handleHirarcChange(index, "potensi", e.target.value)
+                          }
+                          className="w-full border rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                        ></textarea>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                          Resiko
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={item.resiko}
+                          onChange={(e) =>
+                            handleHirarcChange(index, "resiko", e.target.value)
+                          }
+                          className="w-full border rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                        ></textarea>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                          Tindakan Pengendalian
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={item.pengendalian}
+                          onChange={(e) =>
+                            handleHirarcChange(
+                              index,
+                              "pengendalian",
+                              e.target.value,
+                            )
+                          }
+                          className="w-full border rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                        ></textarea>
+                      </div>
+                    </div>
+
+                    {/* Baris 2: Skor Awal, Skor Setelah, Info Tambahan */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {/* Skor Awal */}
+                      <div className="bg-white border rounded-lg p-3">
+                        <span className="text-[10px] font-bold text-gray-500 uppercase mb-2 block">
+                          Skor Penilaian Awal
+                        </span>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={item.keparahan}
+                            onChange={(e) =>
+                              handleHirarcChange(
+                                index,
+                                "keparahan",
+                                e.target.value,
+                              )
+                            }
+                            placeholder="Keparahan"
+                            className="w-1/3 border rounded p-2 text-xs focus:ring-2 focus:ring-blue-500 outline-none"
+                          />
+                          <input
+                            type="text"
+                            value={item.kemungkinan}
+                            onChange={(e) =>
+                              handleHirarcChange(
+                                index,
+                                "kemungkinan",
+                                e.target.value,
+                              )
+                            }
+                            placeholder="Kemungkinan"
+                            className="w-1/3 border rounded p-2 text-xs focus:ring-2 focus:ring-blue-500 outline-none"
+                          />
+                          <input
+                            type="text"
+                            value={item.tingkat}
+                            onChange={(e) =>
+                              handleHirarcChange(
+                                index,
+                                "tingkat",
+                                e.target.value,
+                              )
+                            }
+                            placeholder="Tingkat"
+                            className="w-1/3 border rounded p-2 text-xs focus:ring-2 focus:ring-blue-500 outline-none bg-red-50 text-red-700 font-bold"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Skor Setelah Pengendalian */}
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                        <span className="text-[10px] font-bold text-green-700 uppercase mb-2 block">
+                          Skor Setelah Pengendalian
+                        </span>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={item.keparahanSetelah}
+                            onChange={(e) =>
+                              handleHirarcChange(
+                                index,
+                                "keparahanSetelah",
+                                e.target.value,
+                              )
+                            }
+                            placeholder="Keparahan"
+                            className="w-1/3 border rounded p-2 text-xs focus:ring-2 focus:ring-green-500 outline-none"
+                          />
+                          <input
+                            type="text"
+                            value={item.kemungkinanSetelah}
+                            onChange={(e) =>
+                              handleHirarcChange(
+                                index,
+                                "kemungkinanSetelah",
+                                e.target.value,
+                              )
+                            }
+                            placeholder="Kemungkinan"
+                            className="w-1/3 border rounded p-2 text-xs focus:ring-2 focus:ring-green-500 outline-none"
+                          />
+                          <input
+                            type="text"
+                            value={item.tingkatSetelah}
+                            onChange={(e) =>
+                              handleHirarcChange(
+                                index,
+                                "tingkatSetelah",
+                                e.target.value,
+                              )
+                            }
+                            placeholder="Tingkat"
+                            className="w-1/3 border border-green-300 rounded p-2 text-xs focus:ring-2 focus:ring-green-500 outline-none bg-green-100 text-green-800 font-bold"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Info PIC & Status */}
+                      <div className="bg-white border rounded-lg p-3 flex gap-2">
+                        <div className="w-1/2">
+                          <span className="text-[10px] font-bold text-gray-500 uppercase mb-2 block">
+                            P. Jawab
+                          </span>
+                          <input
+                            type="text"
+                            value={item.penanggungJawab}
+                            onChange={(e) =>
+                              handleHirarcChange(
+                                index,
+                                "penanggungJawab",
+                                e.target.value,
+                              )
+                            }
+                            placeholder="Nama PIC"
+                            className="w-full border rounded p-2 text-xs focus:ring-2 focus:ring-blue-500 outline-none"
+                          />
+                        </div>
+                        <div className="w-1/2">
+                          <span className="text-[10px] font-bold text-gray-500 uppercase mb-2 block">
+                            Status
+                          </span>
+                          <input
+                            type="text"
+                            value={item.statusPengendalian}
+                            onChange={(e) =>
+                              handleHirarcChange(
+                                index,
+                                "statusPengendalian",
+                                e.target.value,
+                              )
+                            }
+                            placeholder="Open / Closed"
+                            className="w-full border rounded p-2 text-xs focus:ring-2 focus:ring-blue-500 outline-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="bg-green-50 p-4 rounded-md border border-green-200">
-                    <span className="text-xs font-bold text-green-700 uppercase mb-2 block">
-                      Skor Setelah Pengendalian
-                    </span>
-                    <input
-                      type="text"
-                      value={hirarcKeparahanSetelah}
-                      onChange={(e) =>
-                        setHirarcKeparahanSetelah(e.target.value)
-                      }
-                      placeholder="Nilai Keparahan"
-                      className="w-full mb-2 border rounded p-2 text-sm"
-                    />
-                    <input
-                      type="text"
-                      value={hirarcKemungkinanSetelah}
-                      onChange={(e) =>
-                        setHirarcKemungkinanSetelah(e.target.value)
-                      }
-                      placeholder="Nilai Kemungkinan"
-                      className="w-full mb-2 border rounded p-2 text-sm"
-                    />
-                    <input
-                      type="text"
-                      value={hirarcTingkatSetelah}
-                      onChange={(e) => setHirarcTingkatSetelah(e.target.value)}
-                      placeholder="Tingkat Resiko Baru"
-                      className="w-full border rounded p-2 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Status Pengendalian
-                    </label>
-                    <input
-                      type="text"
-                      value={hirarcStatusPengendalian}
-                      onChange={(e) =>
-                        setHirarcStatusPengendalian(e.target.value)
-                      }
-                      className="w-full border rounded p-2 text-sm"
-                      placeholder="Open / Closed"
-                    />
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
           )}
