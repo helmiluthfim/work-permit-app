@@ -3,22 +3,21 @@
 import { useState, useEffect, useContext } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft,
-  ArrowRight,
   ClipboardList,
-  Briefcase,
-  CalendarClock,
-  UserSquare2,
-  Phone,
-  ShieldAlert,
-  Info,
   FileText,
   Wrench,
   Ruler,
   Shield,
-  Lock,
+  Info,
 } from "lucide-react";
 import { WorkPermitFormContext } from "../layout";
+import {
+  SectionCard,
+  InfoSummaryBar,
+  FormattedText,
+  NavFooter,
+  LoadingSpinner,
+} from "../shared-components";
 
 interface Personnel {
   _id: string;
@@ -30,6 +29,41 @@ interface JobTemplate {
   _id: string;
   kodePekerjaan: string;
   namaPekerjaan: string;
+}
+
+// ─── Kartu peralatan ─────────────────────────────────────────────────────────
+function EquipCard({
+  icon: Icon,
+  iconBg,
+  iconColor,
+  label,
+  content,
+}: {
+  icon: React.ElementType;
+  iconBg: string;
+  iconColor: string;
+  label: string;
+  content: string;
+}) {
+  return (
+    <div className="flex flex-col rounded-2xl border border-slate-200 bg-white shadow-sm">
+      {/* Header */}
+      <div className="flex items-center gap-3 rounded-t-2xl border-b border-slate-100 px-5 py-3.5">
+        <div
+          className={`flex h-8 w-8 items-center justify-center rounded-lg ${iconBg}`}
+        >
+          <Icon size={15} className={iconColor} />
+        </div>
+        <span className="text-xs font-black uppercase tracking-widest text-[#0F1F3D]">
+          {label}
+        </span>
+      </div>
+      {/* Content */}
+      <div className="flex-1 px-5 py-4">
+        <FormattedText text={content} />
+      </div>
+    </div>
+  );
 }
 
 export default function TabSOP() {
@@ -47,66 +81,18 @@ export default function TabSOP() {
           fetch("/api/job-templates"),
           fetch("/api/personnel"),
         ]);
-
         const dataJobs = await resJobs.json();
         const dataPersonnel = await resPersonnel.json();
-
         if (dataJobs.success) setJobTemplates(dataJobs.data);
         if (dataPersonnel.success) setAllPersonnel(dataPersonnel.data);
-      } catch (error) {
-        console.error("Gagal memuat data referensi SOP", error);
+      } catch (err) {
+        console.error(err);
       } finally {
         setIsFetching(false);
       }
     };
-
     fetchMasterData();
   }, []);
-
-  // FUNGSI PARSING CERDAS UNTUK SUB-JUDUL & BULLET
-  const renderFormattedText = (text: string) => {
-    if (!text)
-      return (
-        <span className="text-gray-400 italic">
-          Data kosong dari template master...
-        </span>
-      );
-
-    const lines = text.split("\n");
-
-    return (
-      <div className="space-y-1">
-        {lines.map((line, index) => {
-          const trimmedLine = line.trim();
-          if (!trimmedLine) return null;
-
-          const isSubJudul = /^\d+\./.test(trimmedLine);
-
-          if (isSubJudul) {
-            return (
-              <div
-                key={index}
-                className="font-bold text-gray-900 mt-4 mb-2 uppercase tracking-wide text-xs"
-              >
-                {trimmedLine}
-              </div>
-            );
-          } else {
-            const cleanText = trimmedLine.replace(/^- /, "");
-            return (
-              <div
-                key={index}
-                className="text-gray-700 ml-3 flex gap-2 items-start"
-              >
-                <span className="text-blue-500 font-bold mt-0.5">•</span>
-                <span className="text-sm">{cleanText}</span>
-              </div>
-            );
-          }
-        })}
-      </div>
-    );
-  };
 
   const selectedJob = jobTemplates.find((j) => j._id === formData.pekerjaanId);
   const selectedPjTeknik = allPersonnel.find(
@@ -116,218 +102,86 @@ export default function TabSOP() {
     (p) => p._id === formData.tenagaAhliK3,
   );
 
-  const handleNext = () => {
-    router.push("/work-permits/create/ik");
-  };
-
-  if (isFetching) {
-    return (
-      <div className="flex min-h-[40vh] flex-col items-center justify-center space-y-4">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600"></div>
-        <p className="animate-pulse text-gray-500 text-sm">
-          Menyiapkan dokumen SOP...
-        </p>
-      </div>
-    );
-  }
+  if (isFetching) return <LoadingSpinner label="Menyiapkan dokumen SOP..." />;
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-      {/* ======================================================== */}
-      {/* KOTAK INFO READ-ONLY KOMPLET */}
-      {/* ======================================================== */}
-      <div className="bg-blue-50/70 border border-blue-100 rounded-xl p-5 shadow-sm grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 text-sm animate-in fade-in duration-300">
-        <div className="flex gap-3">
-          <Briefcase className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-          <div>
-            <span className="text-xs font-bold text-blue-500 uppercase tracking-wide block">
-              Nama Pekerjaan
-            </span>
-            <span className="font-bold text-gray-800">
-              {selectedJob
-                ? `${selectedJob.kodePekerjaan} - ${selectedJob.namaPekerjaan}`
-                : "-"}
-            </span>
-            <span className="text-xs text-gray-500 block mt-0.5">
-              Lokasi: {formData.lokasi || "-"}
-            </span>
-          </div>
-        </div>
-        <div className="flex gap-3 border-t sm:border-t-0 sm:border-l border-blue-100 sm:pl-4 lg:pl-5">
-          <CalendarClock className="w-5 h-5 text-indigo-600 flex-shrink-0 mt-0.5" />
-          <div className="space-y-1.5">
-            <div>
-              <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wide block">
-                Mulai
-              </span>
-              <span className="font-semibold text-gray-700 text-xs">
-                {formData.tanggalMulai || "-"}{" "}
-                <span className="text-gray-400">|</span>{" "}
-                {formData.waktuMulai || "-"}
-              </span>
-            </div>
-            <div>
-              <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wide block">
-                Selesai
-              </span>
-              <span className="font-semibold text-gray-700 text-xs">
-                {formData.tanggalSelesai || "-"}{" "}
-                <span className="text-gray-400">|</span>{" "}
-                {formData.waktuSelesai || "-"}
-              </span>
-            </div>
-          </div>
-        </div>
-        <div className="flex gap-3 border-t lg:border-t-0 lg:border-l border-blue-100 lg:pl-5">
-          <UserSquare2 className="w-5 h-5 text-teal-600 flex-shrink-0 mt-0.5" />
-          <div>
-            <span className="text-xs font-bold text-teal-500 uppercase tracking-wide block">
-              PJ Teknik
-            </span>
-            <span className="font-semibold text-gray-800">
-              {selectedPjTeknik?.nama || "-"}
-            </span>
-            <span className="text-xs text-gray-600 flex items-center gap-1 mt-0.5">
-              <Phone className="w-3 h-3 text-gray-400" />{" "}
-              {formData.noTelpPjTeknik || "-"}
-            </span>
-          </div>
-        </div>
-        <div className="flex gap-3 border-t lg:border-t-0 lg:border-l border-blue-100 lg:pl-5">
-          <ShieldAlert className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
-          <div>
-            <span className="text-xs font-bold text-orange-500 uppercase tracking-wide block">
-              Tenaga Ahli K3
-            </span>
-            <span className="font-semibold text-gray-800">
-              {selectedAhliK3?.nama || "-"}
-            </span>
-            <span className="text-xs text-gray-600 flex items-center gap-1 mt-0.5">
-              <Phone className="w-3 h-3 text-gray-400" />{" "}
-              {formData.noTelpTenagaAhliK3 || "-"}
-            </span>
-          </div>
-        </div>
-      </div>
-      {/* ======================================================== */}
+    <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-300">
+      <InfoSummaryBar
+        formData={formData}
+        selectedJob={selectedJob}
+        selectedPjTeknik={selectedPjTeknik}
+        selectedAhliK3={selectedAhliK3}
+      />
 
-      {/* KOTAK DETAIL SOP (READ-ONLY) */}
-      <div className="bg-white rounded-2xl shadow-md border border-slate-100 overflow-hidden">
-        {/* Header Section */}
-        <div className="bg-gradient-to-r from-slate-50 to-white px-6 py-5 border-b border-slate-100 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-blue-50 rounded-xl text-blue-600 shadow-sm">
-              <ClipboardList className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-slate-800 tracking-tight">
-                Standar Operasional Prosedur (SOP)
-              </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Dokumen referensi resmi pengerjaan lapangan
-              </p>
-            </div>
+      {/* ── PERALATAN 3 kolom ── */}
+      <div>
+        <div className="mb-3 flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[#F5A623]">
+              Standar Operasional Prosedur
+            </p>
+            <h2 className="text-base font-black text-[#0F1F3D]">
+              Perlengkapan & Peralatan
+            </h2>
           </div>
-          <span className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-600 border border-slate-200 text-xs font-bold rounded-full uppercase tracking-wider shadow-sm">
-            <Lock className="w-3.5 h-3.5" />
+          <span className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
             Read Only
           </span>
         </div>
 
-        {/* Content Body */}
-        <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6 bg-slate-50/30">
-          {/* Perlengkapan Kerja */}
-          <div className="bg-white border border-slate-200/80 rounded-xl p-5 shadow-sm transition-all duration-200 hover:shadow-md">
-            <div className="flex items-center gap-2 mb-3 pb-2.5 border-b border-slate-100">
-              <div className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg">
-                <Shield className="w-4 h-4" />
-              </div>
-              <label className="block text-xs font-extrabold text-slate-700 uppercase tracking-wider">
-                Perlengkapan Kerja (APD)
-              </label>
-            </div>
-            <div className="text-slate-600 text-sm leading-relaxed min-h-[7rem]">
-              {renderFormattedText(formData.sopPerlengkapan)}
-            </div>
-          </div>
-
-          {/* Peralatan Ukur */}
-          <div className="bg-white border border-slate-200/80 rounded-xl p-5 shadow-sm transition-all duration-200 hover:shadow-md">
-            <div className="flex items-center gap-2 mb-3 pb-2.5 border-b border-slate-100">
-              <div className="p-1.5 bg-purple-50 text-purple-600 rounded-lg">
-                <Ruler className="w-4 h-4" />
-              </div>
-              <label className="block text-xs font-extrabold text-slate-700 uppercase tracking-wider">
-                Peralatan Ukur
-              </label>
-            </div>
-            <div className="text-slate-600 text-sm leading-relaxed min-h-[7rem]">
-              {renderFormattedText(formData.sopAlatUkur)}
-            </div>
-          </div>
-
-          {/* Peralatan Kerja */}
-          <div className="bg-white border border-slate-200/80 rounded-xl p-5 shadow-sm transition-all duration-200 hover:shadow-md">
-            <div className="flex items-center gap-2 mb-3 pb-2.5 border-b border-slate-100">
-              <div className="p-1.5 bg-amber-50 text-amber-600 rounded-lg">
-                <Wrench className="w-4 h-4" />
-              </div>
-              <label className="block text-xs font-extrabold text-slate-700 uppercase tracking-wider">
-                Peralatan Kerja
-              </label>
-            </div>
-            <div className="text-slate-600 text-sm leading-relaxed min-h-[7rem]">
-              {renderFormattedText(formData.sopAlatKerja)}
-            </div>
-          </div>
-
-          {/* Uraian Kegiatan (Lebar Penuh) */}
-          <div className="md:col-span-3 bg-white border border-slate-200/80 rounded-xl p-6 shadow-sm transition-all duration-200 hover:shadow-md">
-            <div className="flex items-center gap-2 mb-4 pb-2.5 border-b border-slate-100">
-              <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg">
-                <FileText className="w-4 h-4" />
-              </div>
-              <label className="block text-xs font-extrabold text-slate-700 uppercase tracking-wider">
-                Uraian Kegiatan
-              </label>
-            </div>
-            <div className="text-slate-600 text-sm leading-relaxed min-h-[10rem]">
-              {renderFormattedText(formData.sopUraian)}
-            </div>
-          </div>
-
-          {/* Catatan Kaki / Disclaimer Box */}
-          <div className="md:col-span-3 flex items-start gap-3 bg-amber-50/60 border border-amber-200/40 rounded-xl p-4 mt-2">
-            <Info className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-            <p className="text-xs text-amber-950 leading-relaxed font-medium">
-              <span className="font-bold uppercase tracking-wider mr-1 text-amber-800">
-                PENTING:
-              </span>
-              Prosedur ini adalah standar mutlak dari perusahaan. Semua pihak di
-              lapangan wajib mematuhi panduan dan menggunakan peralatan yang
-              tertulis pada dokumen ini tanpa pengecualian.
-            </p>
-          </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <EquipCard
+            icon={Shield}
+            iconBg="bg-emerald-50"
+            iconColor="text-emerald-600"
+            label="Perlengkapan Kerja (APD)"
+            content={formData.sopPerlengkapan}
+          />
+          <EquipCard
+            icon={Ruler}
+            iconBg="bg-violet-50"
+            iconColor="text-violet-600"
+            label="Peralatan Ukur"
+            content={formData.sopAlatUkur}
+          />
+          <EquipCard
+            icon={Wrench}
+            iconBg="bg-[#F5A623]/15"
+            iconColor="text-amber-600"
+            label="Peralatan Kerja"
+            content={formData.sopAlatKerja}
+          />
         </div>
       </div>
 
-      {/* NAVIGASI BAWAH */}
-      <div className="flex justify-between pt-4">
-        <button
-          type="button"
-          onClick={() => router.push("/work-permits/create/hirarc")}
-          className="flex items-center gap-2 px-6 py-2 border border-gray-300 bg-white text-gray-700 rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
-        >
-          <ArrowLeft className="w-4 h-4" /> Kembali ke HIRARC
-        </button>
-        <button
-          type="button"
-          onClick={handleNext}
-          className="flex items-center gap-2 px-6 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors shadow-sm"
-        >
-          Lanjut ke Instruksi Kerja <ArrowRight className="w-4 h-4" />
-        </button>
+      {/* ── URAIAN KEGIATAN ── */}
+      <SectionCard title="Uraian Kegiatan" icon={FileText} badge="Read Only">
+        <div className="min-h-[10rem]">
+          <FormattedText text={formData.sopUraian} />
+        </div>
+      </SectionCard>
+
+      {/* ── DISCLAIMER ── */}
+      <div className="flex items-start gap-3 rounded-2xl border border-[#F5A623]/30 bg-[#F5A623]/8 px-5 py-4">
+        <Info size={16} className="mt-0.5 shrink-0 text-[#F5A623]" />
+        <p className="text-xs leading-relaxed text-slate-600">
+          <span className="font-black uppercase tracking-wide text-[#0F1F3D]">
+            PENTING:{" "}
+          </span>
+          Prosedur ini adalah standar mutlak perusahaan. Semua pihak di lapangan
+          wajib mematuhi panduan dan menggunakan peralatan yang tertulis tanpa
+          pengecualian.
+        </p>
       </div>
+
+      <NavFooter
+        step={4}
+        totalSteps={5}
+        backLabel="HIRARC"
+        nextLabel="Lanjut ke Instruksi Kerja"
+        onBack={() => router.push("/work-permits/create/hirarc")}
+        onNext={() => router.push("/work-permits/create/ik")}
+      />
     </div>
   );
 }

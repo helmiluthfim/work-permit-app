@@ -2,37 +2,147 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Info, Plus, Trash2 } from "lucide-react"; // Tambahkan ikon Info
+import {
+  Info,
+  Plus,
+  Trash2,
+  FileText,
+  ShieldAlert,
+  Activity,
+  ClipboardList,
+  BookOpen,
+  Briefcase,
+  ChevronLeft,
+  ChevronRight,
+  Save,
+  Lightbulb,
+} from "lucide-react";
 
 const TABS = [
-  { id: "info", label: "1. Info Utama" },
-  { id: "wp", label: "2. Work Permit" },
-  { id: "jsa", label: "3. JSA" },
-  { id: "hirarc", label: "4. HIRARC" },
-  { id: "sop", label: "5. SOP" },
-  { id: "ik", label: "6. Instruksi Kerja" },
+  { id: "info", label: "Info Utama", icon: Briefcase, desc: "Kode & Nama" },
+  { id: "wp", label: "Work Permit", icon: FileText, desc: "Template WP" },
+  { id: "jsa", label: "JSA", icon: ShieldAlert, desc: "Analisis Bahaya" },
+  { id: "hirarc", label: "HIRARC", icon: Activity, desc: "Penilaian Risiko" },
+  { id: "sop", label: "SOP", icon: ClipboardList, desc: "Prosedur Kerja" },
+  {
+    id: "ik",
+    label: "Instruksi Kerja",
+    icon: BookOpen,
+    desc: "Panduan Teknis",
+  },
 ];
+
+// ─── Shared field components ─────────────────────────────────────────────────
+
+const inputClass =
+  "w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#0F1F3D] placeholder-slate-400 outline-none transition focus:border-[#0F1F3D] focus:bg-white focus:ring-2 focus:ring-[#0F1F3D]/10";
+
+const textareaClass =
+  "w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#0F1F3D] placeholder-slate-400 outline-none transition focus:border-[#0F1F3D] focus:bg-white focus:ring-2 focus:ring-[#0F1F3D]/10 resize-none";
+
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <label className="mb-1.5 block text-xs font-black uppercase tracking-wide text-slate-500">
+      {children}
+    </label>
+  );
+}
+
+function SectionCard({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-100 bg-[#0F1F3D]/[0.03] px-6 py-3.5">
+        <h3 className="text-xs font-black uppercase tracking-widest text-[#0F1F3D]">
+          {title}
+        </h3>
+      </div>
+      <div className="p-6">{children}</div>
+    </div>
+  );
+}
+
+// Live preview renderer
+function LivePreview({ text, label }: { text: string; label: string }) {
+  return (
+    <div className="flex flex-col gap-2">
+      <FieldLabel>Pratinjau — {label}</FieldLabel>
+      <div className="min-h-[132px] overflow-y-auto rounded-xl border border-dashed border-[#F5A623]/40 bg-[#F5A623]/5 p-4 text-sm">
+        {!text ? (
+          <span className="text-xs italic text-slate-400">
+            Mulai mengetik untuk melihat pratinjau...
+          </span>
+        ) : (
+          <div className="space-y-1">
+            {text.split("\n").map((line, i) => {
+              const t = line.trim();
+              if (!t) return null;
+              if (/^\d+\./.test(t))
+                return (
+                  <p
+                    key={i}
+                    className="mt-3 text-xs font-black uppercase tracking-wide text-[#0F1F3D] first:mt-0"
+                  >
+                    {t}
+                  </p>
+                );
+              return (
+                <div
+                  key={i}
+                  className="ml-2 flex items-start gap-2 text-sm text-slate-700"
+                >
+                  <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#F5A623]" />
+                  <span>{t.replace(/^- /, "")}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Format helper banner
+function FormatHelper() {
+  return (
+    <div className="flex items-start gap-3 rounded-xl border border-[#F5A623]/30 bg-[#F5A623]/8 p-4">
+      <Lightbulb size={16} className="mt-0.5 shrink-0 text-[#F5A623]" />
+      <div>
+        <p className="mb-1 text-xs font-black uppercase tracking-wide text-[#0F1F3D]">
+          Panduan Penulisan
+        </p>
+        <p className="text-xs leading-relaxed text-slate-600">
+          Awali baris dengan angka (mis.{" "}
+          <span className="font-bold text-[#0F1F3D]">1. Persiapan</span>) untuk
+          membuat <strong>sub-judul tebal</strong>. Baris biasa otomatis menjadi
+          bullet point.
+        </p>
+      </div>
+    </div>
+  );
+}
 
 export default function CreateJobTemplatePage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-
   const [activeTab, setActiveTab] = useState(TABS[0].id);
 
-  // --- STATE DATA ---
   const [kodePekerjaan, setKodePekerjaan] = useState("");
   const [namaPekerjaan, setNamaPekerjaan] = useState("");
   const [status, setStatus] = useState("active");
-
   const [wpKlasifikasi, setWpKlasifikasi] = useState("");
   const [wpProsedur, setWpProsedur] = useState("");
   const [wpLampiran, setWpLampiran] = useState("");
-
   const [jsaLangkah, setJsaLangkah] = useState("");
   const [jsaBahaya, setJsaBahaya] = useState("");
   const [jsaPengendalian, setJsaPengendalian] = useState("");
-
   const [hirarcList, setHirarcList] = useState([
     {
       potensi: "",
@@ -48,33 +158,28 @@ export default function CreateJobTemplatePage() {
       statusPengendalian: "",
     },
   ]);
-
   const [sopPerlengkapan, setSopPerlengkapan] = useState("");
   const [sopAlatUkur, setSopAlatUkur] = useState("");
   const [sopAlatKerja, setSopAlatKerja] = useState("");
   const [sopUraian, setSopUraian] = useState("");
-
   const [ikPerlengkapan, setIkPerlengkapan] = useState("");
   const [ikAlatUkur, setIkAlatUkur] = useState("");
   const [ikAlatKerja, setIkAlatKerja] = useState("");
   const [ikUraian, setIkUraian] = useState("");
 
-  const textToArray = (text: string) => {
-    return text
+  const textToArray = (text: string) =>
+    text
       .split("\n")
-      .map((item) => item.trim())
-      .filter((item) => item.length > 0);
-  };
+      .map((s) => s.trim())
+      .filter(Boolean);
 
-  // Fungsi untuk update salah satu field di dalam array
   const handleHirarcChange = (index: number, field: string, value: string) => {
-    const newList = [...hirarcList];
-    newList[index] = { ...newList[index], [field]: value };
-    setHirarcList(newList);
+    const n = [...hirarcList];
+    n[index] = { ...n[index], [field]: value };
+    setHirarcList(n);
   };
 
-  // Fungsi tambah baris potensi bahaya baru
-  const addHirarcItem = () => {
+  const addHirarcItem = () =>
     setHirarcList([
       ...hirarcList,
       {
@@ -91,27 +196,19 @@ export default function CreateJobTemplatePage() {
         statusPengendalian: "",
       },
     ]);
-  };
 
-  // Fungsi hapus baris
-  const removeHirarcItem = (index: number) => {
-    const newList = hirarcList.filter((_, i) => i !== index);
-    setHirarcList(newList);
-  };
+  const removeHirarcItem = (i: number) =>
+    setHirarcList(hirarcList.filter((_, idx) => idx !== i));
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
-    if (e.key === "Enter") {
-      if ((e.target as HTMLElement).tagName !== "TEXTAREA") {
-        e.preventDefault();
-      }
-    }
+    if (e.key === "Enter" && (e.target as HTMLElement).tagName !== "TEXTAREA")
+      e.preventDefault();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setErrorMsg("");
-
     const payload = {
       kodePekerjaan,
       namaPekerjaan,
@@ -143,7 +240,6 @@ export default function CreateJobTemplatePage() {
         tingkatResikoSetelahPengendalian: hirarcList.map(
           (h) => h.tingkatSetelah,
         ),
-        // Gabungkan dengan koma jika di schema database statusPengendalian bukan berupa Array
         statusPengendalian: hirarcList
           .map((h) => h.statusPengendalian)
           .join(", "),
@@ -161,21 +257,18 @@ export default function CreateJobTemplatePage() {
         uraianKegiatan: textToArray(ikUraian),
       },
     };
-
     try {
       const res = await fetch("/api/job-templates", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Gagal menyimpan data");
-
       router.push("/master/jobs");
       router.refresh();
-    } catch (error: any) {
-      setErrorMsg(error.message);
+    } catch (err: any) {
+      setErrorMsg(err.message);
     } finally {
       setIsLoading(false);
     }
@@ -189,772 +282,619 @@ export default function CreateJobTemplatePage() {
     if (currentIndex > 0) setActiveTab(TABS[currentIndex - 1].id);
   };
 
-  // Komponen Helper Text untuk digunakan berulang di tiap tab
-  const SmartFormatHelper = () => (
-    <div className="mb-5 bg-blue-50/80 border border-blue-200 rounded-lg p-4 flex gap-3 text-sm text-blue-900 shadow-sm animate-in fade-in">
-      <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-      <div>
-        <p className="font-bold mb-1 uppercase tracking-wide text-xs text-blue-700">
-          Panduan Penulisan Cerdas
-        </p>
-        <p>
-          Sistem ini akan merapikan teks Anda secara otomatis di dokumen Izin
-          Kerja:
-        </p>
-        <ul className="list-disc list-inside mt-1 space-y-0.5 text-blue-800">
-          <li>
-            Awali baris dengan angka (contoh:{" "}
-            <strong>1. Safety Briefing</strong>) untuk menjadikannya{" "}
-            <strong>Sub-Judul</strong> tebal.
-          </li>
-          <li>
-            Ketik baris biasa di bawahnya, sistem akan mengubahnya menjadi
-            daftar titik (bullet).
-          </li>
-          <li>
-            Gunakan tombol <strong>Enter</strong> untuk berpindah baris.
-          </li>
-        </ul>
-      </div>
-    </div>
-  );
-
   return (
-    <div className="p-8 w-full max-w-6xl mx-auto">
-      <div className="mb-6 flex justify-between items-end">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">
-            Buat Master Pekerjaan K3
-          </h1>
-          <p className="text-gray-500 text-sm mt-1">
-            Lengkapi template dokumen langkah demi langkah.
-          </p>
-        </div>
-        <button
-          onClick={() => router.back()}
-          className="px-4 py-2 border rounded text-sm hover:bg-gray-50 transition"
-        >
-          Batal & Kembali
-        </button>
-      </div>
-
-      {errorMsg && (
-        <div className="mb-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
-          {errorMsg}
-        </div>
-      )}
-
-      {/* NAVIGASI TAB MENU */}
-      <div className="flex overflow-x-auto border-b mb-6 scrollbar-hide">
-        {TABS.map((tab) => (
+    <div className="min-h-full w-full bg-[#F7F8FA]">
+      {/* ── TOP HEADER ── */}
+      <div className="bg-[#0F1F3D] px-6 py-5 md:px-10">
+        <div className="mx-auto max-w-5xl flex items-center justify-between">
+          <div>
+            <p className="mb-0.5 text-[10px] font-bold uppercase tracking-widest text-[#F5A623]">
+              Master Data K3
+            </p>
+            <h1 className="text-xl font-black text-white">
+              Buat Master Pekerjaan K3
+            </h1>
+            <p className="mt-1 text-xs text-slate-400">
+              Lengkapi template dokumen langkah demi langkah.
+            </p>
+          </div>
           <button
-            key={tab.id}
-            type="button"
-            onClick={() => setActiveTab(tab.id)}
-            className={`py-3 px-6 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
-              activeTab === tab.id
-                ? "border-blue-600 text-blue-600"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-            }`}
+            onClick={() => router.back()}
+            className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold text-white/70 transition hover:bg-white/10"
           >
-            {tab.label}
+            Batal
           </button>
-        ))}
+        </div>
       </div>
 
-      <form
-        onSubmit={handleSubmit}
-        onKeyDown={handleKeyDown}
-        className="bg-white p-6 rounded-lg border shadow-sm min-h-[400px] flex flex-col justify-between"
-      >
-        <div className="mb-8">
-          {/* TAB 1: INFO UTAMA */}
-          {activeTab === "info" && (
-            <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-              <h2 className="text-lg font-bold mb-4">
-                Informasi Utama Pekerjaan
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Kode Pekerjaan *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={kodePekerjaan}
-                    onChange={(e) => setKodePekerjaan(e.target.value)}
-                    className="w-full border rounded-md p-3 focus:ring-2 focus:ring-blue-500 outline-none"
-                    placeholder="Contoh: WP-001"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nama Pekerjaan *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={namaPekerjaan}
-                    onChange={(e) => setNamaPekerjaan(e.target.value)}
-                    className="w-full border rounded-md p-3 focus:ring-2 focus:ring-blue-500 outline-none"
-                    placeholder="Contoh: Pengelasan Pipa"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 2: WORK PERMIT */}
-          {activeTab === "wp" && (
-            <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-              <h2 className="text-lg font-bold mb-4">Template Work Permit</h2>
-              <SmartFormatHelper />
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Klasifikasi Pekerjaan
-                  </label>
-                  <textarea
-                    rows={4}
-                    value={wpKlasifikasi}
-                    onChange={(e) => setWpKlasifikasi(e.target.value)}
-                    className="w-full border rounded-md p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                    placeholder="1. Pekerjaan Panas&#10;Melibatkan mesin las&#10;2. Pekerjaan Ketinggian"
-                  ></textarea>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Prosedur Pekerjaan
-                  </label>
-                  <textarea
-                    rows={4}
-                    value={wpProsedur}
-                    onChange={(e) => setWpProsedur(e.target.value)}
-                    className="w-full border rounded-md p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                    placeholder="Isi prosedur..."
-                  ></textarea>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Lampiran Tambahan
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={wpLampiran}
-                    onChange={(e) => setWpLampiran(e.target.value)}
-                    className="w-full border rounded-md p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                    placeholder="Sertifikat Welder&#10;Foto Area"
-                  ></textarea>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 3: JSA */}
-          {activeTab === "jsa" && (
-            <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-              <h2 className="text-lg font-bold mb-4">
-                Template Job Safety Analysis (JSA)
-              </h2>
-              <SmartFormatHelper />
-
-              <div className="grid grid-cols-1 gap-8">
-                {/* FIELD: LANGKAH KERJA */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1">
-                      Langkah Kerja{" "}
-                      <span className="text-xs font-normal text-gray-400">
-                        (Input Editor)
-                      </span>
-                    </label>
-                    <textarea
-                      rows={5}
-                      value={jsaLangkah}
-                      onChange={(e) => setJsaLangkah(e.target.value)}
-                      className="w-full border rounded-md p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                      placeholder="1. Persiapan&#10;Mengecek APD&#10;2. Eksekusi"
-                    ></textarea>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1">
-                      Pratinjau Hasil{" "}
-                      <span className="text-xs font-normal text-blue-500">
-                        (Otomatis Bold & Bullet)
-                      </span>
-                    </label>
-                    <div className="w-full h-[132px] overflow-y-auto border border-dashed border-gray-300 bg-gray-50 rounded-md p-3 text-sm">
-                      {!jsaLangkah ? (
-                        <span className="text-gray-400 italic text-xs">
-                          Mulai mengetik untuk melihat hasil...
-                        </span>
-                      ) : (
-                        <div className="space-y-1">
-                          {jsaLangkah.split("\n").map((line, idx) => {
-                            const trimmed = line.trim();
-                            if (!trimmed) return null;
-                            // Jika diawali angka dan titik (cth: "1. ") -> BOLD
-                            if (/^\d+\./.test(trimmed)) {
-                              return (
-                                <div
-                                  key={idx}
-                                  className="font-bold text-gray-900 mt-3 mb-1"
-                                >
-                                  {trimmed}
-                                </div>
-                              );
-                            }
-                            // Jika bukan, jadikan bullet
-                            return (
-                              <div
-                                key={idx}
-                                className="text-gray-700 ml-3 flex gap-2 items-start"
-                              >
-                                <span className="text-blue-500 font-bold mt-0.5">
-                                  •
-                                </span>
-                                <span>{trimmed.replace(/^- /, "")}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* FIELD: BAHAYA & RESIKO */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1">
-                      Bahaya & Resiko{" "}
-                      <span className="text-xs font-normal text-gray-400">
-                        (Input Editor)
-                      </span>
-                    </label>
-                    <textarea
-                      rows={5}
-                      value={jsaBahaya}
-                      onChange={(e) => setJsaBahaya(e.target.value)}
-                      className="w-full border rounded-md p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                    ></textarea>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1">
-                      Pratinjau Hasil
-                    </label>
-                    <div className="w-full h-[132px] overflow-y-auto border border-dashed border-gray-300 bg-gray-50 rounded-md p-3 text-sm">
-                      {!jsaBahaya ? (
-                        <span className="text-gray-400 italic text-xs">
-                          Mulai mengetik untuk melihat hasil...
-                        </span>
-                      ) : (
-                        <div className="space-y-1">
-                          {jsaBahaya.split("\n").map((line, idx) => {
-                            const trimmed = line.trim();
-                            if (!trimmed) return null;
-                            if (/^\d+\./.test(trimmed)) {
-                              return (
-                                <div
-                                  key={idx}
-                                  className="font-bold text-gray-900 mt-3 mb-1"
-                                >
-                                  {trimmed}
-                                </div>
-                              );
-                            }
-                            return (
-                              <div
-                                key={idx}
-                                className="text-gray-700 ml-3 flex gap-2 items-start"
-                              >
-                                <span className="text-blue-500 font-bold mt-0.5">
-                                  •
-                                </span>
-                                <span>{trimmed.replace(/^- /, "")}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* FIELD: PENGENDALIAN */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1">
-                      Pengendalian{" "}
-                      <span className="text-xs font-normal text-gray-400">
-                        (Input Editor)
-                      </span>
-                    </label>
-                    <textarea
-                      rows={5}
-                      value={jsaPengendalian}
-                      onChange={(e) => setJsaPengendalian(e.target.value)}
-                      className="w-full border rounded-md p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                    ></textarea>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1">
-                      Pratinjau Hasil
-                    </label>
-                    <div className="w-full h-[132px] overflow-y-auto border border-dashed border-gray-300 bg-gray-50 rounded-md p-3 text-sm">
-                      {!jsaPengendalian ? (
-                        <span className="text-gray-400 italic text-xs">
-                          Mulai mengetik untuk melihat hasil...
-                        </span>
-                      ) : (
-                        <div className="space-y-1">
-                          {jsaPengendalian.split("\n").map((line, idx) => {
-                            const trimmed = line.trim();
-                            if (!trimmed) return null;
-                            if (/^\d+\./.test(trimmed)) {
-                              return (
-                                <div
-                                  key={idx}
-                                  className="font-bold text-gray-900 mt-3 mb-1"
-                                >
-                                  {trimmed}
-                                </div>
-                              );
-                            }
-                            return (
-                              <div
-                                key={idx}
-                                className="text-gray-700 ml-3 flex gap-2 items-start"
-                              >
-                                <span className="text-blue-500 font-bold mt-0.5">
-                                  •
-                                </span>
-                                <span>{trimmed.replace(/^- /, "")}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 4: HIRARC */}
-          {activeTab === "hirarc" && (
-            <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-bold">Template HIRARC</h2>
+      {/* ── TAB NAV ── */}
+      <div className="border-b border-slate-200 bg-white shadow-sm">
+        <div className="mx-auto max-w-5xl">
+          <nav className="flex overflow-x-auto scrollbar-hide">
+            {TABS.map((tab, i) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              const isDone = i < currentIndex;
+              return (
                 <button
+                  key={tab.id}
                   type="button"
-                  onClick={addHirarcItem}
-                  className="flex items-center gap-2 bg-blue-100 text-blue-700 px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-200 transition-colors"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`group relative flex min-w-[100px] flex-1 flex-col items-center gap-1 px-3 py-4 transition ${isActive ? "cursor-default" : "hover:bg-slate-50 cursor-pointer"}`}
                 >
-                  <Plus className="w-4 h-4" /> Tambah Potensi Bahaya
+                  <div
+                    className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-black transition ${isActive ? "bg-[#0F1F3D] text-white ring-2 ring-[#F5A623] ring-offset-1" : isDone ? "bg-emerald-500 text-white" : "border-2 border-slate-200 text-slate-400 group-hover:border-[#0F1F3D] group-hover:text-[#0F1F3D]"}`}
+                  >
+                    {isDone ? "✓" : i + 1}
+                  </div>
+                  <span
+                    className={`text-xs font-bold whitespace-nowrap ${isActive ? "text-[#0F1F3D]" : "text-slate-500"}`}
+                  >
+                    {tab.label}
+                  </span>
+                  <span
+                    className={`hidden text-[10px] sm:block ${isActive ? "text-[#F5A623]" : "text-slate-400"}`}
+                  >
+                    {tab.desc}
+                  </span>
+                  <span
+                    className={`absolute bottom-0 left-0 right-0 h-0.5 rounded-t-full ${isActive ? "bg-[#F5A623]" : "bg-transparent"}`}
+                  />
                 </button>
-              </div>
+              );
+            })}
+          </nav>
+        </div>
+        {/* Progress bar */}
+        <div className="h-0.5 w-full bg-slate-100">
+          <div
+            className="h-full bg-[#F5A623] transition-all duration-500"
+            style={{ width: `${((currentIndex + 1) / TABS.length) * 100}%` }}
+          />
+        </div>
+      </div>
 
-              {/* Looping Form HIRARC */}
-              <div className="space-y-6">
+      {/* ── FORM BODY ── */}
+      <div className="mx-auto max-w-5xl px-4 py-8 md:px-6">
+        {errorMsg && (
+          <div className="mb-5 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4">
+            <ShieldAlert size={16} className="mt-0.5 shrink-0 text-red-500" />
+            <p className="text-sm font-bold text-red-700">{errorMsg}</p>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} onKeyDown={handleKeyDown}>
+          <div className="space-y-5">
+            {/* ── TAB 1: INFO ── */}
+            {activeTab === "info" && (
+              <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+                <SectionCard title="Informasi Utama Pekerjaan">
+                  <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                    <div>
+                      <FieldLabel>Kode Pekerjaan *</FieldLabel>
+                      <input
+                        type="text"
+                        required
+                        value={kodePekerjaan}
+                        onChange={(e) => setKodePekerjaan(e.target.value)}
+                        placeholder="Contoh: WP-001"
+                        className={inputClass}
+                      />
+                    </div>
+                    <div>
+                      <FieldLabel>Nama Pekerjaan *</FieldLabel>
+                      <input
+                        type="text"
+                        required
+                        value={namaPekerjaan}
+                        onChange={(e) => setNamaPekerjaan(e.target.value)}
+                        placeholder="Contoh: Pengelasan Pipa"
+                        className={inputClass}
+                      />
+                    </div>
+                    <div>
+                      <FieldLabel>Status</FieldLabel>
+                      <select
+                        value={status}
+                        onChange={(e) => setStatus(e.target.value)}
+                        className={inputClass}
+                      >
+                        <option value="active">Aktif</option>
+                        <option value="inactive">Tidak Aktif</option>
+                      </select>
+                    </div>
+                  </div>
+                </SectionCard>
+              </div>
+            )}
+
+            {/* ── TAB 2: WORK PERMIT ── */}
+            {activeTab === "wp" && (
+              <div className="animate-in fade-in slide-in-from-right-4 duration-300 space-y-5">
+                <FormatHelper />
+                <SectionCard title="Template Work Permit">
+                  <div className="space-y-5">
+                    {[
+                      {
+                        label: "Klasifikasi Pekerjaan",
+                        val: wpKlasifikasi,
+                        set: setWpKlasifikasi,
+                        ph: "1. Pekerjaan Panas\nMelibatkan mesin las\n2. Pekerjaan Ketinggian",
+                      },
+                      {
+                        label: "Prosedur Pekerjaan",
+                        val: wpProsedur,
+                        set: setWpProsedur,
+                        ph: "Isi prosedur pekerjaan...",
+                      },
+                      {
+                        label: "Lampiran Tambahan",
+                        val: wpLampiran,
+                        set: setWpLampiran,
+                        ph: "Sertifikat Welder\nFoto Area",
+                      },
+                    ].map((f) => (
+                      <div
+                        key={f.label}
+                        className="grid grid-cols-1 gap-4 sm:grid-cols-2"
+                      >
+                        <div>
+                          <FieldLabel>{f.label}</FieldLabel>
+                          <textarea
+                            rows={4}
+                            value={f.val}
+                            onChange={(e) => f.set(e.target.value)}
+                            placeholder={f.ph}
+                            className={textareaClass}
+                          />
+                        </div>
+                        <LivePreview text={f.val} label={f.label} />
+                      </div>
+                    ))}
+                  </div>
+                </SectionCard>
+              </div>
+            )}
+
+            {/* ── TAB 3: JSA ── */}
+            {activeTab === "jsa" && (
+              <div className="animate-in fade-in slide-in-from-right-4 duration-300 space-y-5">
+                <FormatHelper />
+                <SectionCard title="Template Job Safety Analysis (JSA)">
+                  <div className="space-y-5">
+                    {[
+                      {
+                        label: "Langkah Kerja",
+                        val: jsaLangkah,
+                        set: setJsaLangkah,
+                        ph: "1. Persiapan\nMengecek APD\n2. Eksekusi",
+                      },
+                      {
+                        label: "Bahaya & Resiko",
+                        val: jsaBahaya,
+                        set: setJsaBahaya,
+                        ph: "1. Bahaya Listrik\nTersengat arus...",
+                      },
+                      {
+                        label: "Tindakan Pengendalian",
+                        val: jsaPengendalian,
+                        set: setJsaPengendalian,
+                        ph: "1. Pengendalian Teknis\nGunakan LOTO...",
+                      },
+                    ].map((f) => (
+                      <div
+                        key={f.label}
+                        className="grid grid-cols-1 gap-4 sm:grid-cols-2"
+                      >
+                        <div>
+                          <FieldLabel>{f.label}</FieldLabel>
+                          <textarea
+                            rows={5}
+                            value={f.val}
+                            onChange={(e) => f.set(e.target.value)}
+                            placeholder={f.ph}
+                            className={textareaClass}
+                          />
+                        </div>
+                        <LivePreview text={f.val} label={f.label} />
+                      </div>
+                    ))}
+                  </div>
+                </SectionCard>
+              </div>
+            )}
+
+            {/* ── TAB 4: HIRARC ── */}
+            {activeTab === "hirarc" && (
+              <div className="animate-in fade-in slide-in-from-right-4 duration-300 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-[#F5A623]">
+                      HIRARC
+                    </p>
+                    <h2 className="text-base font-black text-[#0F1F3D]">
+                      Template Penilaian Risiko
+                    </h2>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={addHirarcItem}
+                    className="inline-flex items-center gap-2 rounded-xl border border-[#0F1F3D]/20 bg-[#0F1F3D] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-[#1a3561]"
+                  >
+                    <Plus size={14} /> Tambah Potensi Bahaya
+                  </button>
+                </div>
+
                 {hirarcList.map((item, index) => (
                   <div
                     key={index}
-                    className="bg-gray-50 border border-gray-200 rounded-xl p-6 relative shadow-sm"
+                    className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
                   >
-                    {/* Header Item & Tombol Hapus */}
-                    <div className="flex justify-between items-center mb-4 border-b border-gray-200 pb-3">
-                      <h3 className="font-bold text-gray-800 flex items-center gap-2">
-                        <span className="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">
+                    {/* Card header */}
+                    <div className="flex items-center justify-between border-b border-slate-100 bg-[#0F1F3D] px-5 py-3">
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-[#F5A623] text-xs font-black text-[#F5A623]">
                           {index + 1}
                         </span>
-                        Identifikasi Bahaya ke-{index + 1}
-                      </h3>
+                        <span className="text-sm font-bold text-white">
+                          Identifikasi Bahaya #{index + 1}
+                        </span>
+                      </div>
                       {hirarcList.length > 1 && (
                         <button
                           type="button"
                           onClick={() => removeHirarcItem(index)}
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors flex items-center gap-1 text-sm font-semibold"
+                          className="flex items-center gap-1.5 rounded-lg bg-red-500/20 px-3 py-1.5 text-xs font-bold text-red-300 transition hover:bg-red-500/30"
                         >
-                          <Trash2 className="w-4 h-4" /> Hapus
+                          <Trash2 size={12} /> Hapus
                         </button>
                       )}
                     </div>
-
-                    {/* Baris 1: Bahaya, Resiko, Pengendalian */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
-                      <div>
-                        <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                          Potensi Bahaya
-                        </label>
-                        <textarea
-                          rows={2}
-                          value={item.potensi}
-                          onChange={(e) =>
-                            handleHirarcChange(index, "potensi", e.target.value)
-                          }
-                          className="w-full border rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                          placeholder="Cth: Bekerja dalam bertegangan"
-                        ></textarea>
+                    <div className="p-5 space-y-4">
+                      {/* Row 1 */}
+                      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                        {[
+                          {
+                            label: "Potensi Bahaya",
+                            field: "potensi",
+                            val: item.potensi,
+                            ph: "Cth: Bekerja bertegangan",
+                          },
+                          {
+                            label: "Resiko",
+                            field: "resiko",
+                            val: item.resiko,
+                            ph: "Cth: Tersengat listrik",
+                          },
+                          {
+                            label: "Tindakan Pengendalian",
+                            field: "pengendalian",
+                            val: item.pengendalian,
+                            ph: "Cth: LOTO, APD Lengkap",
+                          },
+                        ].map((f) => (
+                          <div key={f.field}>
+                            <FieldLabel>{f.label}</FieldLabel>
+                            <textarea
+                              rows={2}
+                              value={f.val}
+                              onChange={(e) =>
+                                handleHirarcChange(
+                                  index,
+                                  f.field,
+                                  e.target.value,
+                                )
+                              }
+                              placeholder={f.ph}
+                              className={textareaClass}
+                            />
+                          </div>
+                        ))}
                       </div>
-                      <div>
-                        <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                          Resiko
-                        </label>
-                        <textarea
-                          rows={2}
-                          value={item.resiko}
-                          onChange={(e) =>
-                            handleHirarcChange(index, "resiko", e.target.value)
-                          }
-                          className="w-full border rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                          placeholder="Cth: Tersengat listrik, kematian"
-                        ></textarea>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
-                          Tindakan Pengendalian
-                        </label>
-                        <textarea
-                          rows={2}
-                          value={item.pengendalian}
-                          onChange={(e) =>
-                            handleHirarcChange(
-                              index,
-                              "pengendalian",
-                              e.target.value,
-                            )
-                          }
-                          className="w-full border rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                          placeholder="Cth: LOTO, APD Lengkap"
-                        ></textarea>
-                      </div>
-                    </div>
-
-                    {/* Baris 2: Skor Awal, Skor Setelah */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div className="bg-white border rounded-lg p-3">
-                        <span className="text-[10px] font-bold text-gray-500 uppercase mb-2 block">
-                          Skor Penilaian Awal
-                        </span>
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            value={item.keparahan}
-                            onChange={(e) =>
-                              handleHirarcChange(
-                                index,
-                                "keparahan",
-                                e.target.value,
-                              )
-                            }
-                            placeholder="Keparahan"
-                            className="w-1/3 border rounded p-2 text-xs focus:ring-2 focus:ring-blue-500 outline-none"
-                          />
-                          <input
-                            type="text"
-                            value={item.kemungkinan}
-                            onChange={(e) =>
-                              handleHirarcChange(
-                                index,
-                                "kemungkinan",
-                                e.target.value,
-                              )
-                            }
-                            placeholder="Kemungkinan"
-                            className="w-1/3 border rounded p-2 text-xs focus:ring-2 focus:ring-blue-500 outline-none"
-                          />
-                          <input
-                            type="text"
-                            value={item.tingkat}
-                            onChange={(e) =>
-                              handleHirarcChange(
-                                index,
-                                "tingkat",
-                                e.target.value,
-                              )
-                            }
-                            placeholder="Tingkat (H/M/L)"
-                            className="w-1/3 border rounded p-2 text-xs focus:ring-2 focus:ring-blue-500 outline-none bg-red-50 text-red-700 font-bold"
-                          />
+                      {/* Row 2: Scores */}
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                        {/* Skor awal */}
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                          <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                            Skor Penilaian Awal
+                          </p>
+                          <div className="flex gap-2">
+                            {[
+                              {
+                                ph: "Keparahan",
+                                field: "keparahan",
+                                val: item.keparahan,
+                                cls: "",
+                              },
+                              {
+                                ph: "Kemungkinan",
+                                field: "kemungkinan",
+                                val: item.kemungkinan,
+                                cls: "",
+                              },
+                              {
+                                ph: "Tingkat",
+                                field: "tingkat",
+                                val: item.tingkat,
+                                cls: "bg-red-50 border-red-200 text-red-700 font-bold",
+                              },
+                            ].map((f) => (
+                              <input
+                                key={f.field}
+                                type="text"
+                                value={f.val}
+                                onChange={(e) =>
+                                  handleHirarcChange(
+                                    index,
+                                    f.field,
+                                    e.target.value,
+                                  )
+                                }
+                                placeholder={f.ph}
+                                className={`w-1/3 rounded-lg border p-2 text-xs outline-none focus:ring-1 focus:ring-[#0F1F3D] ${f.cls || "border-slate-200 bg-white"}`}
+                              />
+                            ))}
+                          </div>
                         </div>
-                      </div>
-
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                        <span className="text-[10px] font-bold text-green-700 uppercase mb-2 block">
-                          Skor Setelah Pengendalian
-                        </span>
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            value={item.keparahanSetelah}
-                            onChange={(e) =>
-                              handleHirarcChange(
-                                index,
-                                "keparahanSetelah",
-                                e.target.value,
-                              )
-                            }
-                            placeholder="Keparahan"
-                            className="w-1/3 border rounded p-2 text-xs focus:ring-2 focus:ring-green-500 outline-none"
-                          />
-                          <input
-                            type="text"
-                            value={item.kemungkinanSetelah}
-                            onChange={(e) =>
-                              handleHirarcChange(
-                                index,
-                                "kemungkinanSetelah",
-                                e.target.value,
-                              )
-                            }
-                            placeholder="Kemungkinan"
-                            className="w-1/3 border rounded p-2 text-xs focus:ring-2 focus:ring-green-500 outline-none"
-                          />
-                          <input
-                            type="text"
-                            value={item.tingkatSetelah}
-                            onChange={(e) =>
-                              handleHirarcChange(
-                                index,
-                                "tingkatSetelah",
-                                e.target.value,
-                              )
-                            }
-                            placeholder="Tingkat (H/M/L)"
-                            className="w-1/3 border border-green-300 rounded p-2 text-xs focus:ring-2 focus:ring-green-500 outline-none bg-green-100 text-green-800 font-bold"
-                          />
+                        {/* Skor setelah */}
+                        <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4">
+                          <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-emerald-600">
+                            Skor Setelah Pengendalian
+                          </p>
+                          <div className="flex gap-2">
+                            {[
+                              {
+                                ph: "Keparahan",
+                                field: "keparahanSetelah",
+                                val: item.keparahanSetelah,
+                                cls: "",
+                              },
+                              {
+                                ph: "Kemungkinan",
+                                field: "kemungkinanSetelah",
+                                val: item.kemungkinanSetelah,
+                                cls: "",
+                              },
+                              {
+                                ph: "Tingkat",
+                                field: "tingkatSetelah",
+                                val: item.tingkatSetelah,
+                                cls: "bg-emerald-100 border-emerald-300 text-emerald-800 font-bold",
+                              },
+                            ].map((f) => (
+                              <input
+                                key={f.field}
+                                type="text"
+                                value={f.val}
+                                onChange={(e) =>
+                                  handleHirarcChange(
+                                    index,
+                                    f.field,
+                                    e.target.value,
+                                  )
+                                }
+                                placeholder={f.ph}
+                                className={`w-1/3 rounded-lg border p-2 text-xs outline-none focus:ring-1 focus:ring-emerald-500 ${f.cls || "border-emerald-100 bg-white"}`}
+                              />
+                            ))}
+                          </div>
                         </div>
-                      </div>
-
-                      <div className="bg-white border rounded-lg p-3 flex gap-2">
-                        <div className="w-1/2">
-                          <span className="text-[10px] font-bold text-gray-500 uppercase mb-2 block">
-                            P. Jawab
-                          </span>
-                          <input
-                            type="text"
-                            value={item.penanggungJawab}
-                            onChange={(e) =>
-                              handleHirarcChange(
-                                index,
-                                "penanggungJawab",
-                                e.target.value,
-                              )
-                            }
-                            placeholder="Nama PIC"
-                            className="w-full border rounded p-2 text-xs focus:ring-2 focus:ring-blue-500 outline-none"
-                          />
-                        </div>
-                        <div className="w-1/2">
-                          <span className="text-[10px] font-bold text-gray-500 uppercase mb-2 block">
-                            Status
-                          </span>
-                          <input
-                            type="text"
-                            value={item.statusPengendalian}
-                            onChange={(e) =>
-                              handleHirarcChange(
-                                index,
-                                "statusPengendalian",
-                                e.target.value,
-                              )
-                            }
-                            placeholder="Open / Closed"
-                            className="w-full border rounded p-2 text-xs focus:ring-2 focus:ring-blue-500 outline-none"
-                          />
+                        {/* PIC & Status */}
+                        <div className="rounded-xl border border-slate-200 bg-white p-4">
+                          <div className="flex gap-3">
+                            <div className="flex-1">
+                              <FieldLabel>Penanggung Jawab</FieldLabel>
+                              <input
+                                type="text"
+                                value={item.penanggungJawab}
+                                onChange={(e) =>
+                                  handleHirarcChange(
+                                    index,
+                                    "penanggungJawab",
+                                    e.target.value,
+                                  )
+                                }
+                                placeholder="Nama PIC"
+                                className={`${inputClass} text-xs`}
+                              />
+                            </div>
+                            <div className="flex-1">
+                              <FieldLabel>Status</FieldLabel>
+                              <input
+                                type="text"
+                                value={item.statusPengendalian}
+                                onChange={(e) =>
+                                  handleHirarcChange(
+                                    index,
+                                    "statusPengendalian",
+                                    e.target.value,
+                                  )
+                                }
+                                placeholder="Open / Closed"
+                                className={`${inputClass} text-xs`}
+                              />
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
-            </div>
-          )}
-
-          {/* TAB 5: SOP */}
-          {activeTab === "sop" && (
-            <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-              <div className="flex justify-between items-end mb-4">
-                <h2 className="text-lg font-bold">
-                  Template Standard Operating Procedure (SOP)
-                </h2>
-                <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
-                  Data yang diisi di sini akan otomatis menyalin ke IK
-                </span>
-              </div>
-              <SmartFormatHelper />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Perlengkapan Kerja
-                  </label>
-                  <textarea
-                    rows={4}
-                    value={sopPerlengkapan}
-                    onChange={(e) => {
-                      setSopPerlengkapan(e.target.value);
-                      setIkPerlengkapan(e.target.value); // <--- Auto-fill ke IK
-                    }}
-                    className="w-full border rounded-md p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                  ></textarea>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Peralatan Ukur
-                  </label>
-                  <textarea
-                    rows={4}
-                    value={sopAlatUkur}
-                    onChange={(e) => {
-                      setSopAlatUkur(e.target.value);
-                      setIkAlatUkur(e.target.value); // <--- Auto-fill ke IK
-                    }}
-                    className="w-full border rounded-md p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                  ></textarea>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Peralatan Kerja
-                  </label>
-                  <textarea
-                    rows={4}
-                    value={sopAlatKerja}
-                    onChange={(e) => {
-                      setSopAlatKerja(e.target.value);
-                      setIkAlatKerja(e.target.value); // <--- Auto-fill ke IK
-                    }}
-                    className="w-full border rounded-md p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                  ></textarea>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Uraian Kegiatan
-                  </label>
-                  <textarea
-                    rows={4}
-                    value={sopUraian}
-                    onChange={(e) => {
-                      setSopUraian(e.target.value);
-                      setIkUraian(e.target.value); // <--- Auto-fill ke IK
-                    }}
-                    className="w-full border rounded-md p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                  ></textarea>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 6: IK */}
-          {activeTab === "ik" && (
-            <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-              <div className="flex justify-between items-end mb-4">
-                <h2 className="text-lg font-bold">
-                  Template Instruksi Kerja (IK)
-                </h2>
-                {/* Tombol manual jika user terlanjur menghapus IK dan ingin mengembalikan dari SOP */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIkPerlengkapan(sopPerlengkapan);
-                    setIkAlatUkur(sopAlatUkur);
-                    setIkAlatKerja(sopAlatKerja);
-                    setIkUraian(sopUraian);
-                  }}
-                  className="text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded border border-gray-300 transition-colors"
-                >
-                  ↻ Salin Ulang dari SOP
-                </button>
-              </div>
-              <SmartFormatHelper />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Perlengkapan Kerja
-                  </label>
-                  <textarea
-                    rows={4}
-                    value={ikPerlengkapan}
-                    onChange={(e) => setIkPerlengkapan(e.target.value)}
-                    className="w-full border rounded-md p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                  ></textarea>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Peralatan Ukur
-                  </label>
-                  <textarea
-                    rows={4}
-                    value={ikAlatUkur}
-                    onChange={(e) => setIkAlatUkur(e.target.value)}
-                    className="w-full border rounded-md p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                  ></textarea>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Peralatan Kerja
-                  </label>
-                  <textarea
-                    rows={4}
-                    value={ikAlatKerja}
-                    onChange={(e) => setIkAlatKerja(e.target.value)}
-                    className="w-full border rounded-md p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                  ></textarea>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Uraian Kegiatan
-                  </label>
-                  <textarea
-                    rows={4}
-                    value={ikUraian}
-                    onChange={(e) => setIkUraian(e.target.value)}
-                    className="w-full border rounded-md p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                  ></textarea>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* TOMBOL NAVIGASI BAWAH */}
-        <div className="flex justify-between items-center border-t pt-4">
-          <button
-            type="button"
-            onClick={handlePrev}
-            disabled={currentIndex === 0}
-            className="px-6 py-2 border rounded-md text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 transition"
-          >
-            ← Sebelumnya
-          </button>
-
-          <div className="flex gap-2">
-            {currentIndex < TABS.length - 1 && (
-              <button
-                key="btn-lanjut"
-                type="button"
-                onClick={handleNext}
-                className="px-6 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-900 transition"
-              >
-                Lanjut →
-              </button>
             )}
 
-            {currentIndex === TABS.length - 1 && (
-              <button
-                key="btn-simpan"
-                type="submit"
-                disabled={isLoading}
-                className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-300 transition font-medium"
-              >
-                {isLoading ? "Menyimpan..." : "Simpan Template K3"}
-              </button>
+            {/* ── TAB 5: SOP ── */}
+            {activeTab === "sop" && (
+              <div className="animate-in fade-in slide-in-from-right-4 duration-300 space-y-5">
+                <div className="flex items-start gap-3 rounded-xl border border-[#0F1F3D]/10 bg-[#0F1F3D]/5 p-4">
+                  <Info size={15} className="mt-0.5 shrink-0 text-[#0F1F3D]" />
+                  <p className="text-xs text-slate-600">
+                    <span className="font-black text-[#0F1F3D]">Info: </span>
+                    Data yang diisi di tab SOP akan otomatis menyalin ke tab
+                    Instruksi Kerja.
+                  </p>
+                </div>
+                <FormatHelper />
+                <SectionCard title="Template SOP">
+                  <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                    {[
+                      {
+                        label: "Perlengkapan Kerja (APD)",
+                        val: sopPerlengkapan,
+                        set: (v: string) => {
+                          setSopPerlengkapan(v);
+                          setIkPerlengkapan(v);
+                        },
+                      },
+                      {
+                        label: "Peralatan Ukur",
+                        val: sopAlatUkur,
+                        set: (v: string) => {
+                          setSopAlatUkur(v);
+                          setIkAlatUkur(v);
+                        },
+                      },
+                      {
+                        label: "Peralatan Kerja",
+                        val: sopAlatKerja,
+                        set: (v: string) => {
+                          setSopAlatKerja(v);
+                          setIkAlatKerja(v);
+                        },
+                      },
+                      {
+                        label: "Uraian Kegiatan",
+                        val: sopUraian,
+                        set: (v: string) => {
+                          setSopUraian(v);
+                          setIkUraian(v);
+                        },
+                      },
+                    ].map((f) => (
+                      <div key={f.label}>
+                        <FieldLabel>{f.label}</FieldLabel>
+                        <textarea
+                          rows={4}
+                          value={f.val}
+                          onChange={(e) => f.set(e.target.value)}
+                          className={textareaClass}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </SectionCard>
+              </div>
+            )}
+
+            {/* ── TAB 6: IK ── */}
+            {activeTab === "ik" && (
+              <div className="animate-in fade-in slide-in-from-right-4 duration-300 space-y-5">
+                <div className="flex items-center justify-between">
+                  <FormatHelper />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIkPerlengkapan(sopPerlengkapan);
+                      setIkAlatUkur(sopAlatUkur);
+                      setIkAlatKerja(sopAlatKerja);
+                      setIkUraian(sopUraian);
+                    }}
+                    className="ml-4 shrink-0 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-50"
+                  >
+                    ↻ Salin dari SOP
+                  </button>
+                </div>
+                <SectionCard title="Template Instruksi Kerja (IK)">
+                  <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                    {[
+                      {
+                        label: "Perlengkapan Kerja (APD)",
+                        val: ikPerlengkapan,
+                        set: setIkPerlengkapan,
+                      },
+                      {
+                        label: "Peralatan Ukur",
+                        val: ikAlatUkur,
+                        set: setIkAlatUkur,
+                      },
+                      {
+                        label: "Peralatan Kerja",
+                        val: ikAlatKerja,
+                        set: setIkAlatKerja,
+                      },
+                      {
+                        label: "Uraian Kegiatan",
+                        val: ikUraian,
+                        set: setIkUraian,
+                      },
+                    ].map((f) => (
+                      <div key={f.label}>
+                        <FieldLabel>{f.label}</FieldLabel>
+                        <textarea
+                          rows={4}
+                          value={f.val}
+                          onChange={(e) => f.set(e.target.value)}
+                          className={textareaClass}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </SectionCard>
+              </div>
             )}
           </div>
-        </div>
-      </form>
+
+          {/* ── NAV FOOTER ── */}
+          <div className="mt-6 flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-6 py-4">
+            <div className="flex items-center gap-4">
+              <button
+                type="button"
+                onClick={handlePrev}
+                disabled={currentIndex === 0}
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-50 disabled:opacity-30"
+              >
+                <ChevronLeft size={15} /> Sebelumnya
+              </button>
+              <p className="hidden text-xs text-slate-400 sm:block">
+                Langkah{" "}
+                <span className="font-bold text-[#0F1F3D]">
+                  {currentIndex + 1}
+                </span>{" "}
+                dari {TABS.length}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              {currentIndex < TABS.length - 1 && (
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  className="inline-flex items-center gap-2 rounded-xl bg-[#0F1F3D] px-5 py-2.5 text-sm font-bold text-white transition hover:-translate-y-px hover:bg-[#1a3561]"
+                >
+                  Lanjut <ChevronRight size={15} />
+                </button>
+              )}
+              {currentIndex === TABS.length - 1 && (
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="inline-flex items-center gap-2 rounded-xl bg-[#F5A623] px-6 py-2.5 text-sm font-black text-[#0F1F3D] shadow-sm transition hover:-translate-y-px hover:bg-amber-400 disabled:opacity-50"
+                >
+                  {isLoading ? (
+                    <>
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#0F1F3D] border-t-transparent" />{" "}
+                      Menyimpan...
+                    </>
+                  ) : (
+                    <>
+                      <Save size={15} /> Simpan Template K3
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

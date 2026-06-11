@@ -3,17 +3,22 @@
 import { useState, useEffect, useContext } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft,
   BookOpen,
-  Briefcase,
-  CalendarClock,
-  UserSquare2,
-  Phone,
+  FileText,
+  Wrench,
+  Ruler,
+  Shield,
   ShieldAlert,
-  Save,
-  CheckCircle, // Tambahkan icon ini
+  CheckCircle2,
+  Send,
 } from "lucide-react";
 import { WorkPermitFormContext } from "../layout";
+import {
+  SectionCard,
+  InfoSummaryBar,
+  FormattedText,
+  LoadingSpinner,
+} from "../shared-components";
 
 interface Personnel {
   _id: string;
@@ -27,6 +32,48 @@ interface JobTemplate {
   namaPekerjaan: string;
 }
 
+// ─── Kartu peralatan IK ──────────────────────────────────────────────────────
+function EquipCard({
+  icon: Icon,
+  iconBg,
+  iconColor,
+  label,
+  content,
+}: {
+  icon: React.ElementType;
+  iconBg: string;
+  iconColor: string;
+  label: string;
+  content: string;
+}) {
+  return (
+    <div className="flex flex-col rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex items-center gap-3 rounded-t-2xl border-b border-slate-100 px-5 py-3.5">
+        <div
+          className={`flex h-8 w-8 items-center justify-center rounded-lg ${iconBg}`}
+        >
+          <Icon size={15} className={iconColor} />
+        </div>
+        <span className="text-xs font-black uppercase tracking-widest text-[#0F1F3D]">
+          {label}
+        </span>
+      </div>
+      <div className="flex-1 px-5 py-4">
+        <FormattedText text={content} />
+      </div>
+    </div>
+  );
+}
+
+// ─── helper ──────────────────────────────────────────────────────────────────
+const textToArray = (text: string) =>
+  text
+    ? text
+        .split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : [];
+
 export default function TabIK() {
   const router = useRouter();
   const { formData } = useContext(WorkPermitFormContext);
@@ -35,10 +82,8 @@ export default function TabIK() {
   const [allPersonnel, setAllPersonnel] = useState<Personnel[]>([]);
   const [isFetching, setIsFetching] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
-
-  // STATE BARU UNTUK NOTIFIKASI SUKSES
   const [showSuccess, setShowSuccess] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
     const fetchMasterData = async () => {
@@ -47,75 +92,18 @@ export default function TabIK() {
           fetch("/api/job-templates"),
           fetch("/api/personnel"),
         ]);
-
         const dataJobs = await resJobs.json();
         const dataPersonnel = await resPersonnel.json();
-
         if (dataJobs.success) setJobTemplates(dataJobs.data);
         if (dataPersonnel.success) setAllPersonnel(dataPersonnel.data);
-      } catch (error) {
-        console.error("Gagal memuat data referensi IK", error);
+      } catch (err) {
+        console.error(err);
       } finally {
         setIsFetching(false);
       }
     };
-
     fetchMasterData();
   }, []);
-
-  // FUNGSI PARSING CERDAS UNTUK TAMPILAN
-  const renderFormattedText = (text: string) => {
-    if (!text)
-      return (
-        <span className="text-gray-400 italic">
-          Data kosong dari template master...
-        </span>
-      );
-
-    const lines = text.split("\n");
-
-    return (
-      <div className="space-y-1">
-        {lines.map((line, index) => {
-          const trimmedLine = line.trim();
-          if (!trimmedLine) return null;
-
-          const isSubJudul = /^\d+\./.test(trimmedLine);
-
-          if (isSubJudul) {
-            return (
-              <div
-                key={index}
-                className="font-bold text-gray-900 mt-4 mb-2 uppercase tracking-wide text-xs"
-              >
-                {trimmedLine}
-              </div>
-            );
-          } else {
-            const cleanText = trimmedLine.replace(/^- /, "");
-            return (
-              <div
-                key={index}
-                className="text-gray-700 ml-3 flex gap-2 items-start"
-              >
-                <span className="text-blue-500 font-bold mt-0.5">•</span>
-                <span className="text-sm">{cleanText}</span>
-              </div>
-            );
-          }
-        })}
-      </div>
-    );
-  };
-
-  // HELPER UNTUK MENGEMBALIKAN TEKS MENJADI ARRAY (Untuk Disimpan ke DB)
-  const textToArray = (text: string) => {
-    if (!text) return [];
-    return text
-      .split("\n")
-      .map((item) => item.trim())
-      .filter((item) => item.length > 0);
-  };
 
   const selectedJob = jobTemplates.find((j) => j._id === formData.pekerjaanId);
   const selectedPjTeknik = allPersonnel.find(
@@ -125,9 +113,6 @@ export default function TabIK() {
     (p) => p._id === formData.tenagaAhliK3,
   );
 
-  // ========================================================
-  // FUNGSI FINAL SUBMIT (MENYIMPAN SELURUH DOKUMEN)
-  // ========================================================
   const handleSubmitFinal = async () => {
     setIsSubmitting(true);
     setErrorMsg("");
@@ -143,20 +128,17 @@ export default function TabIK() {
       noTelpPjTeknik: formData.noTelpPjTeknik,
       tenagaAhliK3: formData.tenagaAhliK3,
       noTelpTenagaAhliK3: formData.noTelpTenagaAhliK3,
-
       workPermitData: {
         klasifikasiPekerjaan: textToArray(formData.wpKlasifikasi),
         prosedurPekerjaan: textToArray(formData.wpProsedur),
         lampiran: textToArray(formData.wpLampiran),
       },
-
       jsaData: {
         pelaksana: formData.jsaPelaksana || [],
         langkahKerja: textToArray(formData.jsaLangkah),
         bahayaResiko: textToArray(formData.jsaBahaya),
         pengendalian: textToArray(formData.jsaPengendalian),
       },
-
       hirarcData: {
         potensiBahaya: textToArray(formData.hirarcPotensi),
         resiko: textToArray(formData.hirarcResiko),
@@ -176,14 +158,12 @@ export default function TabIK() {
         statusPengendalian: formData.hirarcStatusPengendalian || "",
         penanggungJawab: textToArray(formData.hirarcPenanggungJawab),
       },
-
       sopData: {
         perlengkapanKerja: textToArray(formData.sopPerlengkapan),
         peralatanUkur: textToArray(formData.sopAlatUkur),
         peralatanKerja: textToArray(formData.sopAlatKerja),
         uraianKegiatan: textToArray(formData.sopUraian),
       },
-
       ikData: {
         perlengkapanKerja: textToArray(formData.ikPerlengkapan),
         peralatanUkur: textToArray(formData.ikAlatUkur),
@@ -198,243 +178,177 @@ export default function TabIK() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-
       const result = await res.json();
+      if (!res.ok)
+        throw new Error(result.message || "Gagal menyimpan pengajuan.");
 
-      if (!res.ok) {
-        throw new Error(
-          result.message || "Gagal menyimpan pengajuan Izin Kerja.",
-        );
-      }
-
-      // 1. Tampilkan Pop-up Berhasil
       setShowSuccess(true);
-
-      // 2. Tunda 2.5 Detik, baru pindah ke halaman Dashboard
       setTimeout(() => {
         router.push("/dashboard");
         router.refresh();
-      }, 2500);
-    } catch (error: any) {
-      setErrorMsg(error.message);
+      }, 2800);
+    } catch (err: any) {
+      setErrorMsg(err.message);
       window.scrollTo({ top: 0, behavior: "smooth" });
-      setIsSubmitting(false); // Kembalikan tombol jika gagal
+      setIsSubmitting(false);
     }
   };
 
-  if (isFetching) {
-    return (
-      <div className="flex min-h-[40vh] flex-col items-center justify-center space-y-4">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-200 border-t-emerald-600"></div>
-        <p className="animate-pulse text-gray-500 text-sm">
-          Menyiapkan dokumen Instruksi Kerja...
-        </p>
-      </div>
-    );
-  }
+  if (isFetching)
+    return <LoadingSpinner label="Menyiapkan dokumen Instruksi Kerja..." />;
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300 relative">
-      {/* ========================================= */}
-      {/* OVERLAY NOTIFIKASI SUKSES                 */}
-      {/* ========================================= */}
+    <div className="relative space-y-5 animate-in fade-in slide-in-from-right-4 duration-300">
+      {/* ── OVERLAY SUKSES ── */}
       {showSuccess && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white p-8 rounded-2xl shadow-2xl flex flex-col items-center text-center max-w-sm mx-4 animate-in zoom-in-95 duration-300">
-            <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-5">
-              <CheckCircle className="w-10 h-10" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0F1F3D]/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="mx-4 flex max-w-sm flex-col items-center rounded-3xl bg-white p-10 text-center shadow-2xl animate-in zoom-in-95 duration-300">
+            <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100">
+              <CheckCircle2 size={44} className="text-emerald-500" />
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">
-              Berhasil Disimpan!
-            </h3>
-            <p className="text-gray-500 text-sm">
-              Dokumen K3 lengkap telah berhasil diajukan ke dalam sistem.
-              Mengalihkan ke dashboard...
+            <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-[#F5A623]">
+              Pengajuan Berhasil
             </p>
-            <div className="mt-6 flex space-x-1">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-bounce"></div>
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-bounce delay-75"></div>
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-bounce delay-150"></div>
+            <h3 className="mb-2 text-xl font-black text-[#0F1F3D]">
+              Dokumen K3 Diajukan!
+            </h3>
+            <p className="text-sm text-slate-500">
+              Semua dokumen telah tersimpan ke sistem. Mengalihkan ke
+              dashboard...
+            </p>
+            <div className="mt-6 flex gap-1.5">
+              {[0, 75, 150].map((delay) => (
+                <div
+                  key={delay}
+                  className="h-2 w-2 animate-bounce rounded-full bg-[#F5A623]"
+                  style={{ animationDelay: `${delay}ms` }}
+                />
+              ))}
             </div>
           </div>
         </div>
       )}
 
+      {/* Error banner */}
       {errorMsg && (
-        <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded shadow-sm flex items-start gap-3">
-          <ShieldAlert className="w-5 h-5 flex-shrink-0 mt-0.5" />
-          <p className="text-sm font-medium">{errorMsg}</p>
+        <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 animate-in fade-in">
+          <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-red-500" />
+          <div>
+            <p className="text-sm font-bold text-red-700">Pengajuan gagal</p>
+            <p className="mt-0.5 text-xs text-red-500">{errorMsg}</p>
+          </div>
         </div>
       )}
 
-      {/* KOTAK INFO READ-ONLY KOMPLET */}
-      <div className="bg-blue-50/70 border border-blue-100 rounded-xl p-5 shadow-sm grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 text-sm animate-in fade-in duration-300">
-        <div className="flex gap-3">
-          <Briefcase className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-          <div>
-            <span className="text-xs font-bold text-blue-500 uppercase tracking-wide block">
-              Nama Pekerjaan
-            </span>
-            <span className="font-bold text-gray-800">
-              {selectedJob
-                ? `${selectedJob.kodePekerjaan} - ${selectedJob.namaPekerjaan}`
-                : "-"}
-            </span>
-            <span className="text-xs text-gray-500 block mt-0.5">
-              Lokasi: {formData.lokasi || "-"}
-            </span>
-          </div>
-        </div>
-        <div className="flex gap-3 border-t sm:border-t-0 sm:border-l border-blue-100 sm:pl-4 lg:pl-5">
-          <CalendarClock className="w-5 h-5 text-indigo-600 flex-shrink-0 mt-0.5" />
-          <div className="space-y-1.5">
-            <div>
-              <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wide block">
-                Mulai
-              </span>
-              <span className="font-semibold text-gray-700 text-xs">
-                {formData.tanggalMulai || "-"}{" "}
-                <span className="text-gray-400">|</span>{" "}
-                {formData.waktuMulai || "-"}
-              </span>
-            </div>
-            <div>
-              <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wide block">
-                Selesai
-              </span>
-              <span className="font-semibold text-gray-700 text-xs">
-                {formData.tanggalSelesai || "-"}{" "}
-                <span className="text-gray-400">|</span>{" "}
-                {formData.waktuSelesai || "-"}
-              </span>
-            </div>
-          </div>
-        </div>
-        <div className="flex gap-3 border-t lg:border-t-0 lg:border-l border-blue-100 lg:pl-5">
-          <UserSquare2 className="w-5 h-5 text-teal-600 flex-shrink-0 mt-0.5" />
-          <div>
-            <span className="text-xs font-bold text-teal-500 uppercase tracking-wide block">
-              PJ Teknik
-            </span>
-            <span className="font-semibold text-gray-800">
-              {selectedPjTeknik?.nama || "-"}
-            </span>
-            <span className="text-xs text-gray-600 flex items-center gap-1 mt-0.5">
-              <Phone className="w-3 h-3 text-gray-400" />{" "}
-              {formData.noTelpPjTeknik || "-"}
-            </span>
-          </div>
-        </div>
-        <div className="flex gap-3 border-t lg:border-t-0 lg:border-l border-blue-100 lg:pl-5">
-          <ShieldAlert className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
-          <div>
-            <span className="text-xs font-bold text-orange-500 uppercase tracking-wide block">
-              Tenaga Ahli K3
-            </span>
-            <span className="font-semibold text-gray-800">
-              {selectedAhliK3?.nama || "-"}
-            </span>
-            <span className="text-xs text-gray-600 flex items-center gap-1 mt-0.5">
-              <Phone className="w-3 h-3 text-gray-400" />{" "}
-              {formData.noTelpTenagaAhliK3 || "-"}
-            </span>
-          </div>
-        </div>
-      </div>
+      {/* Info bar */}
+      <InfoSummaryBar
+        formData={formData}
+        selectedJob={selectedJob}
+        selectedPjTeknik={selectedPjTeknik}
+        selectedAhliK3={selectedAhliK3}
+      />
 
-      {/* KOTAK DETAIL IK (READ-ONLY) */}
-      <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-        <div className="bg-emerald-50 px-6 py-4 border-b border-emerald-100 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-emerald-600" />
-            <h2 className="text-lg font-bold text-gray-800">
-              Instruksi Kerja (IK)
+      {/* ── PERALATAN IK 3 kolom ── */}
+      <div>
+        <div className="mb-3 flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[#F5A623]">
+              Instruksi Kerja
+            </p>
+            <h2 className="text-base font-black text-[#0F1F3D]">
+              Perlengkapan & Peralatan
             </h2>
           </div>
-          <span className="px-3 py-1 bg-emerald-200/50 text-emerald-800 text-xs font-bold rounded uppercase tracking-wider border border-emerald-200">
+          <span className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
             Read Only
           </span>
         </div>
 
-        <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Perlengkapan Kerja */}
-          <div>
-            <label className="block text-sm font-bold mb-2 text-gray-700 uppercase tracking-wide border-b border-gray-200 pb-2">
-              Perlengkapan Kerja (APD)
-            </label>
-            <div className="bg-gray-50/80 border border-gray-200 rounded-lg p-4 min-h-[8rem] shadow-inner overflow-hidden">
-              {renderFormattedText(formData.ikPerlengkapan)}
-            </div>
-          </div>
-
-          {/* Peralatan Ukur */}
-          <div>
-            <label className="block text-sm font-bold mb-2 text-gray-700 uppercase tracking-wide border-b border-gray-200 pb-2">
-              Peralatan Ukur
-            </label>
-            <div className="bg-gray-50/80 border border-gray-200 rounded-lg p-4 min-h-[8rem] shadow-inner overflow-hidden">
-              {renderFormattedText(formData.ikAlatUkur)}
-            </div>
-          </div>
-
-          {/* Peralatan Kerja */}
-          <div>
-            <label className="block text-sm font-bold mb-2 text-gray-700 uppercase tracking-wide border-b border-gray-200 pb-2">
-              Peralatan Kerja
-            </label>
-            <div className="bg-gray-50/80 border border-gray-200 rounded-lg p-4 min-h-[8rem] shadow-inner overflow-hidden">
-              {renderFormattedText(formData.ikAlatKerja)}
-            </div>
-          </div>
-
-          {/* Uraian Kegiatan */}
-          <div className="md:col-span-3 mt-2">
-            <label className="block text-sm font-bold mb-2 text-gray-700 uppercase tracking-wide border-b border-gray-200 pb-2">
-              Uraian Kegiatan Detail
-            </label>
-            <div className="bg-gray-50/80 border border-gray-200 rounded-lg p-5 min-h-[12rem] shadow-inner overflow-hidden">
-              {renderFormattedText(formData.ikUraian)}
-            </div>
-          </div>
-
-          <div className="md:col-span-3 bg-blue-50/50 p-4 rounded-lg border border-blue-100 flex items-start gap-3 mt-2">
-            <ShieldAlert className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-blue-900 leading-relaxed">
-              <strong>Pernyataan Kepatuhan:</strong> Dengan menekan tombol
-              ajukan di bawah, Anda selaku Penanggung Jawab Teknik memastikan
-              bahwa seluruh data Work Permit beserta dokumen pendukungnya (JSA,
-              HIRARC, SOP, IK) telah ditinjau dan sesuai dengan kondisi
-              lapangan.
-            </p>
-          </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <EquipCard
+            icon={Shield}
+            iconBg="bg-emerald-50"
+            iconColor="text-emerald-600"
+            label="Perlengkapan Kerja (APD)"
+            content={formData.ikPerlengkapan}
+          />
+          <EquipCard
+            icon={Ruler}
+            iconBg="bg-violet-50"
+            iconColor="text-violet-600"
+            label="Peralatan Ukur"
+            content={formData.ikAlatUkur}
+          />
+          <EquipCard
+            icon={Wrench}
+            iconBg="bg-[#F5A623]/15"
+            iconColor="text-amber-600"
+            label="Peralatan Kerja"
+            content={formData.ikAlatKerja}
+          />
         </div>
       </div>
 
-      {/* NAVIGASI & TOMBOL SUBMIT FINAL */}
-      <div className="flex justify-between items-center pt-6 pb-8">
-        <button
-          type="button"
-          onClick={() => router.push("/work-permits/create/sop")}
-          disabled={isSubmitting || showSuccess} // Kunci tombol saat sedang submit/sukses
-          className="flex items-center gap-2 px-6 py-3 border border-gray-300 bg-white text-gray-700 rounded-xl hover:bg-gray-50 transition-colors shadow-sm font-medium disabled:opacity-50"
-        >
-          <ArrowLeft className="w-5 h-5" /> Kembali ke SOP
-        </button>
+      {/* ── URAIAN KEGIATAN DETAIL ── */}
+      <SectionCard
+        title="Uraian Kegiatan Detail"
+        icon={FileText}
+        badge="Read Only"
+      >
+        <div className="min-h-[12rem]">
+          <FormattedText text={formData.ikUraian} />
+        </div>
+      </SectionCard>
+
+      {/* ── PERNYATAAN KEPATUHAN ── */}
+      <div className="rounded-2xl border border-[#0F1F3D]/15 bg-[#0F1F3D]/[0.03] p-5">
+        <div className="mb-3 flex items-center gap-2">
+          <div className="h-1 w-6 rounded-full bg-[#F5A623]" />
+          <p className="text-xs font-black uppercase tracking-widest text-[#0F1F3D]">
+            Pernyataan Kepatuhan
+          </p>
+        </div>
+        <p className="text-sm leading-relaxed text-slate-600">
+          Dengan menekan{" "}
+          <span className="font-bold text-[#0F1F3D]">Ajukan Dokumen K3</span>,
+          Anda selaku Penanggung Jawab Teknik memastikan bahwa seluruh data Work
+          Permit beserta dokumen pendukungnya{" "}
+          <span className="font-semibold">(JSA, HIRARC, SOP, IK)</span> telah
+          ditinjau dan sesuai dengan kondisi lapangan aktual.
+        </p>
+      </div>
+
+      {/* ── NAVIGASI FINAL ── */}
+      <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-6 py-4">
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => router.push("/work-permits/create/sop")}
+            disabled={isSubmitting || showSuccess}
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-slate-50 disabled:opacity-40"
+          >
+            ← SOP
+          </button>
+          <p className="hidden text-xs text-slate-400 sm:block">
+            Langkah <span className="font-bold text-[#0F1F3D]">5</span> dari 5 —
+            Langkah Terakhir
+          </p>
+        </div>
 
         <button
           type="button"
           onClick={handleSubmitFinal}
           disabled={isSubmitting || showSuccess}
-          className="flex items-center gap-2 px-8 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition-all transform active:scale-95 shadow-md font-bold text-base"
+          className="inline-flex items-center gap-2 rounded-xl bg-[#F5A623] px-7 py-2.5 text-sm font-black text-[#0F1F3D] shadow-md transition hover:-translate-y-px hover:bg-amber-400 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isSubmitting || showSuccess ? (
             <>
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              Memproses Dokumen...
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#0F1F3D] border-t-transparent" />
+              Memproses...
             </>
           ) : (
             <>
-              <Save className="w-5 h-5" />
+              <Send size={15} />
               Ajukan Dokumen K3
             </>
           )}
