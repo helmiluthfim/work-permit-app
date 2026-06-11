@@ -358,40 +358,186 @@ export default function CreateJobTemplatePage() {
                 Template Job Safety Analysis (JSA)
               </h2>
               <SmartFormatHelper />
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Langkah Kerja
-                  </label>
-                  <textarea
-                    rows={4}
-                    value={jsaLangkah}
-                    onChange={(e) => setJsaLangkah(e.target.value)}
-                    className="w-full border rounded-md p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                    placeholder="1. Persiapan&#10;Mengecek APD&#10;2. Eksekusi"
-                  ></textarea>
+
+              <div className="grid grid-cols-1 gap-8">
+                {/* FIELD: LANGKAH KERJA */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">
+                      Langkah Kerja{" "}
+                      <span className="text-xs font-normal text-gray-400">
+                        (Input Editor)
+                      </span>
+                    </label>
+                    <textarea
+                      rows={5}
+                      value={jsaLangkah}
+                      onChange={(e) => setJsaLangkah(e.target.value)}
+                      className="w-full border rounded-md p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                      placeholder="1. Persiapan&#10;Mengecek APD&#10;2. Eksekusi"
+                    ></textarea>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">
+                      Pratinjau Hasil{" "}
+                      <span className="text-xs font-normal text-blue-500">
+                        (Otomatis Bold & Bullet)
+                      </span>
+                    </label>
+                    <div className="w-full h-[132px] overflow-y-auto border border-dashed border-gray-300 bg-gray-50 rounded-md p-3 text-sm">
+                      {!jsaLangkah ? (
+                        <span className="text-gray-400 italic text-xs">
+                          Mulai mengetik untuk melihat hasil...
+                        </span>
+                      ) : (
+                        <div className="space-y-1">
+                          {jsaLangkah.split("\n").map((line, idx) => {
+                            const trimmed = line.trim();
+                            if (!trimmed) return null;
+                            // Jika diawali angka dan titik (cth: "1. ") -> BOLD
+                            if (/^\d+\./.test(trimmed)) {
+                              return (
+                                <div
+                                  key={idx}
+                                  className="font-bold text-gray-900 mt-3 mb-1"
+                                >
+                                  {trimmed}
+                                </div>
+                              );
+                            }
+                            // Jika bukan, jadikan bullet
+                            return (
+                              <div
+                                key={idx}
+                                className="text-gray-700 ml-3 flex gap-2 items-start"
+                              >
+                                <span className="text-blue-500 font-bold mt-0.5">
+                                  •
+                                </span>
+                                <span>{trimmed.replace(/^- /, "")}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Bahaya & Resiko
-                  </label>
-                  <textarea
-                    rows={4}
-                    value={jsaBahaya}
-                    onChange={(e) => setJsaBahaya(e.target.value)}
-                    className="w-full border rounded-md p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                  ></textarea>
+
+                {/* FIELD: BAHAYA & RESIKO */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">
+                      Bahaya & Resiko{" "}
+                      <span className="text-xs font-normal text-gray-400">
+                        (Input Editor)
+                      </span>
+                    </label>
+                    <textarea
+                      rows={5}
+                      value={jsaBahaya}
+                      onChange={(e) => setJsaBahaya(e.target.value)}
+                      className="w-full border rounded-md p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    ></textarea>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">
+                      Pratinjau Hasil
+                    </label>
+                    <div className="w-full h-[132px] overflow-y-auto border border-dashed border-gray-300 bg-gray-50 rounded-md p-3 text-sm">
+                      {!jsaBahaya ? (
+                        <span className="text-gray-400 italic text-xs">
+                          Mulai mengetik untuk melihat hasil...
+                        </span>
+                      ) : (
+                        <div className="space-y-1">
+                          {jsaBahaya.split("\n").map((line, idx) => {
+                            const trimmed = line.trim();
+                            if (!trimmed) return null;
+                            if (/^\d+\./.test(trimmed)) {
+                              return (
+                                <div
+                                  key={idx}
+                                  className="font-bold text-gray-900 mt-3 mb-1"
+                                >
+                                  {trimmed}
+                                </div>
+                              );
+                            }
+                            return (
+                              <div
+                                key={idx}
+                                className="text-gray-700 ml-3 flex gap-2 items-start"
+                              >
+                                <span className="text-blue-500 font-bold mt-0.5">
+                                  •
+                                </span>
+                                <span>{trimmed.replace(/^- /, "")}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Pengendalian
-                  </label>
-                  <textarea
-                    rows={4}
-                    value={jsaPengendalian}
-                    onChange={(e) => setJsaPengendalian(e.target.value)}
-                    className="w-full border rounded-md p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                  ></textarea>
+
+                {/* FIELD: PENGENDALIAN */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">
+                      Pengendalian{" "}
+                      <span className="text-xs font-normal text-gray-400">
+                        (Input Editor)
+                      </span>
+                    </label>
+                    <textarea
+                      rows={5}
+                      value={jsaPengendalian}
+                      onChange={(e) => setJsaPengendalian(e.target.value)}
+                      className="w-full border rounded-md p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    ></textarea>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">
+                      Pratinjau Hasil
+                    </label>
+                    <div className="w-full h-[132px] overflow-y-auto border border-dashed border-gray-300 bg-gray-50 rounded-md p-3 text-sm">
+                      {!jsaPengendalian ? (
+                        <span className="text-gray-400 italic text-xs">
+                          Mulai mengetik untuk melihat hasil...
+                        </span>
+                      ) : (
+                        <div className="space-y-1">
+                          {jsaPengendalian.split("\n").map((line, idx) => {
+                            const trimmed = line.trim();
+                            if (!trimmed) return null;
+                            if (/^\d+\./.test(trimmed)) {
+                              return (
+                                <div
+                                  key={idx}
+                                  className="font-bold text-gray-900 mt-3 mb-1"
+                                >
+                                  {trimmed}
+                                </div>
+                              );
+                            }
+                            return (
+                              <div
+                                key={idx}
+                                className="text-gray-700 ml-3 flex gap-2 items-start"
+                              >
+                                <span className="text-blue-500 font-bold mt-0.5">
+                                  •
+                                </span>
+                                <span>{trimmed.replace(/^- /, "")}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

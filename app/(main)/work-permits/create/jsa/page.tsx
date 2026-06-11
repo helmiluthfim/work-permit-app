@@ -118,6 +118,46 @@ export default function TabJSA() {
     );
   }
 
+  const renderFormattedText = (text: string) => {
+    if (!text)
+      return (
+        <span className="text-gray-400 italic">
+          Data kosong dari template master...
+        </span>
+      );
+
+    return (
+      <div className="space-y-1">
+        {text.split("\n").map((line, index) => {
+          const trimmed = line.trim();
+          if (!trimmed) return null;
+
+          // Cek apakah diawali angka dan titik
+          if (/^\d+\./.test(trimmed)) {
+            return (
+              <div
+                key={index}
+                className="font-bold text-gray-900 mt-3 mb-1 text-sm"
+              >
+                {trimmed}
+              </div>
+            );
+          } else {
+            return (
+              <div
+                key={index}
+                className="text-gray-700 ml-3 flex gap-2 items-start text-sm"
+              >
+                <span className="text-blue-500 font-bold mt-0.5">•</span>
+                <span>{trimmed.replace(/^- /, "")}</span>
+              </div>
+            );
+          }
+        })}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
       {errorMsg && (
@@ -307,12 +347,8 @@ export default function TabJSA() {
                 Langkah Kerja
               </h3>
             </div>
-            <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed bg-blue-50/30 p-4 rounded-r-lg border border-blue-50/50">
-              {formData.jsaLangkah || (
-                <span className="text-gray-400 italic">
-                  Data kosong dari template master...
-                </span>
-              )}
+            <div className="text-sm text-gray-700 bg-blue-50/30 p-4 rounded-r-lg border border-blue-50/50 min-h-[4rem]">
+              {renderFormattedText(formData.jsaLangkah)}
             </div>
           </div>
 
@@ -324,12 +360,8 @@ export default function TabJSA() {
                 Bahaya & Resiko
               </h3>
             </div>
-            <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed bg-red-50/30 p-4 rounded-r-lg border border-red-50/50">
-              {formData.jsaBahaya || (
-                <span className="text-gray-400 italic">
-                  Data kosong dari template master...
-                </span>
-              )}
+            <div className="text-sm text-gray-700 bg-red-50/30 p-4 rounded-r-lg border border-red-50/50 min-h-[4rem]">
+              {renderFormattedText(formData.jsaBahaya)}
             </div>
           </div>
 
@@ -341,12 +373,8 @@ export default function TabJSA() {
                 Tindakan Pengendalian
               </h3>
             </div>
-            <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed bg-emerald-50/30 p-4 rounded-r-lg border border-emerald-50/50">
-              {formData.jsaPengendalian || (
-                <span className="text-gray-400 italic">
-                  Data kosong dari template master...
-                </span>
-              )}
+            <div className="text-sm text-gray-700 bg-emerald-50/30 p-4 rounded-r-lg border border-emerald-50/50 min-h-[4rem]">
+              {renderFormattedText(formData.jsaPengendalian)}
             </div>
           </div>
 

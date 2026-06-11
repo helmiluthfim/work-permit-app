@@ -1,25 +1,24 @@
-"use client";
+// app/dashboard/layout.tsx  (atau layout wrapper di root app)
+// Letakkan ini sebagai layout yang membungkus semua halaman dengan sidebar + navbar
 
 import Navbar from "./Navbar";
-import { SidebarProvider } from "../ui/sidebar";
 import AppSidebar from "./Sidebar";
 
-interface Props {
+export default function DashboardLayout({
+  children,
+}: {
   children: React.ReactNode;
-}
-
-export default function DashboardLayout({ children }: Props) {
+}) {
   return (
-    <div className="flex">
-      <SidebarProvider>
-        <AppSidebar />
+    <div className="flex h-screen overflow-hidden bg-slate-50">
+      {/* Sidebar: fixed height, tidak ikut scroll */}
+      <AppSidebar />
 
-        <div className="flex-1">
-          <Navbar />
-
-          <main className="p-6">{children}</main>
-        </div>
-      </SidebarProvider>
+      {/* Kolom kanan: navbar + konten yang bisa scroll */}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <Navbar />
+        <main className="flex-1 overflow-y-auto">{children}</main>
+      </div>
     </div>
   );
 }

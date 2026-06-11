@@ -11,6 +11,12 @@ import {
   UserSquare2,
   Phone,
   ShieldAlert,
+  Info,
+  FileText,
+  Wrench,
+  Ruler,
+  Shield,
+  Lock,
 } from "lucide-react";
 import { WorkPermitFormContext } from "../layout";
 
@@ -206,65 +212,100 @@ export default function TabSOP() {
       {/* ======================================================== */}
 
       {/* KOTAK DETAIL SOP (READ-ONLY) */}
-      <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-        <div className="bg-gray-50 px-6 py-4 border-b flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <ClipboardList className="w-5 h-5 text-blue-600" />
-            <h2 className="text-lg font-bold text-gray-800">
-              Standar Operasional Prosedur (SOP)
-            </h2>
+      <div className="bg-white rounded-2xl shadow-md border border-slate-100 overflow-hidden">
+        {/* Header Section */}
+        <div className="bg-gradient-to-r from-slate-50 to-white px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-blue-50 rounded-xl text-blue-600 shadow-sm">
+              <ClipboardList className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-slate-800 tracking-tight">
+                Standar Operasional Prosedur (SOP)
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Dokumen referensi resmi pengerjaan lapangan
+              </p>
+            </div>
           </div>
-          <span className="px-3 py-1 bg-gray-200 text-gray-700 text-xs font-bold rounded uppercase tracking-wider">
+          <span className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-600 border border-slate-200 text-xs font-bold rounded-full uppercase tracking-wider shadow-sm">
+            <Lock className="w-3.5 h-3.5" />
             Read Only
           </span>
         </div>
 
-        <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Content Body */}
+        <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6 bg-slate-50/30">
           {/* Perlengkapan Kerja */}
-          <div>
-            <label className="block text-sm font-bold mb-2 text-gray-700 uppercase tracking-wide border-b border-gray-200 pb-2">
-              Perlengkapan Kerja (APD)
-            </label>
-            <div className="bg-gray-50/80 border border-gray-200 rounded-lg p-4 min-h-[8rem] shadow-inner overflow-hidden">
+          <div className="bg-white border border-slate-200/80 rounded-xl p-5 shadow-sm transition-all duration-200 hover:shadow-md">
+            <div className="flex items-center gap-2 mb-3 pb-2.5 border-b border-slate-100">
+              <div className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg">
+                <Shield className="w-4 h-4" />
+              </div>
+              <label className="block text-xs font-extrabold text-slate-700 uppercase tracking-wider">
+                Perlengkapan Kerja (APD)
+              </label>
+            </div>
+            <div className="text-slate-600 text-sm leading-relaxed min-h-[7rem]">
               {renderFormattedText(formData.sopPerlengkapan)}
             </div>
           </div>
 
           {/* Peralatan Ukur */}
-          <div>
-            <label className="block text-sm font-bold mb-2 text-gray-700 uppercase tracking-wide border-b border-gray-200 pb-2">
-              Peralatan Ukur
-            </label>
-            <div className="bg-gray-50/80 border border-gray-200 rounded-lg p-4 min-h-[8rem] shadow-inner overflow-hidden">
+          <div className="bg-white border border-slate-200/80 rounded-xl p-5 shadow-sm transition-all duration-200 hover:shadow-md">
+            <div className="flex items-center gap-2 mb-3 pb-2.5 border-b border-slate-100">
+              <div className="p-1.5 bg-purple-50 text-purple-600 rounded-lg">
+                <Ruler className="w-4 h-4" />
+              </div>
+              <label className="block text-xs font-extrabold text-slate-700 uppercase tracking-wider">
+                Peralatan Ukur
+              </label>
+            </div>
+            <div className="text-slate-600 text-sm leading-relaxed min-h-[7rem]">
               {renderFormattedText(formData.sopAlatUkur)}
             </div>
           </div>
 
           {/* Peralatan Kerja */}
-          <div>
-            <label className="block text-sm font-bold mb-2 text-gray-700 uppercase tracking-wide border-b border-gray-200 pb-2">
-              Peralatan Kerja
-            </label>
-            <div className="bg-gray-50/80 border border-gray-200 rounded-lg p-4 min-h-[8rem] shadow-inner overflow-hidden">
+          <div className="bg-white border border-slate-200/80 rounded-xl p-5 shadow-sm transition-all duration-200 hover:shadow-md">
+            <div className="flex items-center gap-2 mb-3 pb-2.5 border-b border-slate-100">
+              <div className="p-1.5 bg-amber-50 text-amber-600 rounded-lg">
+                <Wrench className="w-4 h-4" />
+              </div>
+              <label className="block text-xs font-extrabold text-slate-700 uppercase tracking-wider">
+                Peralatan Kerja
+              </label>
+            </div>
+            <div className="text-slate-600 text-sm leading-relaxed min-h-[7rem]">
               {renderFormattedText(formData.sopAlatKerja)}
             </div>
           </div>
 
-          {/* Uraian Kegiatan (Dibuat lebar penuh ke bawah) */}
-          <div className="md:col-span-3 mt-2">
-            <label className="block text-sm font-bold mb-2 text-gray-700 uppercase tracking-wide border-b border-gray-200 pb-2">
-              Uraian Kegiatan
-            </label>
-            <div className="bg-gray-50/80 border border-gray-200 rounded-lg p-5 min-h-[12rem] shadow-inner overflow-hidden">
+          {/* Uraian Kegiatan (Lebar Penuh) */}
+          <div className="md:col-span-3 bg-white border border-slate-200/80 rounded-xl p-6 shadow-sm transition-all duration-200 hover:shadow-md">
+            <div className="flex items-center gap-2 mb-4 pb-2.5 border-b border-slate-100">
+              <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg">
+                <FileText className="w-4 h-4" />
+              </div>
+              <label className="block text-xs font-extrabold text-slate-700 uppercase tracking-wider">
+                Uraian Kegiatan
+              </label>
+            </div>
+            <div className="text-slate-600 text-sm leading-relaxed min-h-[10rem]">
               {renderFormattedText(formData.sopUraian)}
             </div>
           </div>
 
-          <div className="md:col-span-3">
-            <p className="text-xs text-gray-500 italic bg-gray-50 p-3 rounded border border-gray-100">
-              *Prosedur ini adalah standar mutlak dari perusahaan. Semua pihak
-              di lapangan wajib mematuhi panduan dan menggunakan peralatan yang
-              tertulis pada dokumen ini.
+          {/* Catatan Kaki / Disclaimer Box */}
+          <div className="md:col-span-3 flex items-start gap-3 bg-amber-50/60 border border-amber-200/40 rounded-xl p-4 mt-2">
+            <Info className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-950 leading-relaxed font-medium">
+              <span className="font-bold uppercase tracking-wider mr-1 text-amber-800">
+                PENTING:
+              </span>
+              Prosedur ini adalah standar mutlak dari perusahaan. Semua pihak di
+              lapangan wajib mematuhi panduan dan menggunakan peralatan yang
+              tertulis pada dokumen ini tanpa pengecualian.
             </p>
           </div>
         </div>

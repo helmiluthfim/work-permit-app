@@ -88,6 +88,47 @@ export default function JobTemplatePage() {
     );
   }
 
+  // Fungsi cerdas untuk merender Array dari Database menjadi Bold & Bullet
+  const renderSmartList = (items?: string[]) => {
+    if (!items || items.length === 0) {
+      return (
+        <span className="text-gray-400 italic text-sm">Tidak ada data</span>
+      );
+    }
+
+    return (
+      <div className="space-y-1 mt-1">
+        {items.map((item, index) => {
+          const trimmed = item.trim();
+          if (!trimmed) return null;
+
+          // Jika teks diawali angka dan titik (contoh: "1. Persiapan") -> BOLD
+          if (/^\d+\./.test(trimmed)) {
+            return (
+              <div
+                key={index}
+                className="font-bold text-gray-900 mt-4 mb-1 text-sm"
+              >
+                {trimmed}
+              </div>
+            );
+          }
+
+          // Jika teks biasa -> Jadikan Bullet Point
+          return (
+            <div
+              key={index}
+              className="text-gray-700 ml-3 flex gap-2 items-start text-sm"
+            >
+              <span className="text-blue-500 font-bold mt-0.5">•</span>
+              <span>{trimmed.replace(/^- /, "")}</span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
@@ -234,28 +275,40 @@ export default function JobTemplatePage() {
               </div>
 
               {/* Seksi JSA */}
-              <div className="bg-indigo-50/50 p-4 rounded-lg border border-indigo-100">
-                <h3 className="font-bold text-indigo-800 border-b border-indigo-200 pb-2 mb-3">
+              <div className="bg-indigo-50/40 p-5 rounded-xl border border-indigo-100">
+                <h3 className="font-bold text-indigo-800 border-b border-indigo-200 pb-3 mb-4 text-lg">
                   2. Job Safety Analysis (JSA)
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <span className="text-xs font-semibold text-gray-500 uppercase">
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Langkah Kerja */}
+                  <div className="bg-white p-4 rounded-lg border border-indigo-50 shadow-sm">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-2 border-b border-gray-100 pb-2">
                       Langkah Kerja
                     </span>
-                    {renderList(selectedJob.jsaTemplate?.langkahKerja)}
+                    <div className="h-full">
+                      {renderSmartList(selectedJob.jsaTemplate?.langkahKerja)}
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-xs font-semibold text-gray-500 uppercase">
+
+                  {/* Bahaya & Resiko */}
+                  <div className="bg-white p-4 rounded-lg border border-indigo-50 shadow-sm">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-2 border-b border-gray-100 pb-2">
                       Bahaya & Resiko
                     </span>
-                    {renderList(selectedJob.jsaTemplate?.bahayaResiko)}
+                    <div className="h-full">
+                      {renderSmartList(selectedJob.jsaTemplate?.bahayaResiko)}
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-xs font-semibold text-gray-500 uppercase">
-                      Pengendalian
+
+                  {/* Pengendalian */}
+                  <div className="bg-white p-4 rounded-lg border border-indigo-50 shadow-sm">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-2 border-b border-gray-100 pb-2">
+                      Tindakan Pengendalian
                     </span>
-                    {renderList(selectedJob.jsaTemplate?.pengendalian)}
+                    <div className="h-full">
+                      {renderSmartList(selectedJob.jsaTemplate?.pengendalian)}
+                    </div>
                   </div>
                 </div>
               </div>
