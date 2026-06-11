@@ -141,7 +141,7 @@ export default function JobTemplatePage() {
     try {
       const res = await fetch("/api/job-templates");
       const result = await res.json();
-      setJobs(result.data);
+      setJobs(result.data || []); // Ditambahkan fallback array kosong agar tidak error jika data null
     } catch (err) {
       console.error(err);
     } finally {
@@ -171,11 +171,17 @@ export default function JobTemplatePage() {
     }
   };
 
-  const filtered = jobs.filter(
-    (j) =>
-      j.namaPekerjaan.toLowerCase().includes(search.toLowerCase()) ||
-      j.kodePekerjaan.toLowerCase().includes(search.toLowerCase()),
-  );
+  // Perbaikan utama: Menggunakan fallback `|| ""` agar pencarian aman dari data null/undefined
+  const filtered = jobs.filter((j) => {
+    const namaPekerjaan = j.namaPekerjaan || "";
+    const kodePekerjaan = j.kodePekerjaan || "";
+    const query = search.toLowerCase();
+
+    return (
+      namaPekerjaan.toLowerCase().includes(query) ||
+      kodePekerjaan.toLowerCase().includes(query)
+    );
+  });
 
   if (loading) {
     return (
@@ -225,112 +231,135 @@ export default function JobTemplatePage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Cari kode atau nama pekerjaan..."
-          className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-4 text-sm text-[#0F1F3D] outline-none transition focus:border-[#0F1F3D] focus:ring-2 focus:ring-[#0F1F3D]/10"
+          className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-10 text-sm text-[#0F1F3D] outline-none transition focus:border-[#0F1F3D] focus:ring-2 focus:ring-[#0F1F3D]/10"
         />
+        {/* Tambahan kosmetik fungsional: Tombol 'X' untuk menghapus teks pencarian dengan cepat */}
+        {search && (
+          <button
+            onClick={() => setSearch("")}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#0F1F3D] transition"
+          >
+            <X size={14} />
+          </button>
+        )}
       </div>
 
       {/* ── TABLE ── */}
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        {/* Table header */}
-        <div className="grid grid-cols-[1fr_2fr_100px_140px_160px] border-b border-slate-100 bg-[#0F1F3D]/[0.03] px-5 py-3">
-          {["Kode", "Nama Pekerjaan", "Status", "Dibuat", "Aksi"].map((h) => (
-            <span
-              key={h}
-              className="text-[10px] font-black uppercase tracking-widest text-slate-400"
-            >
-              {h}
-            </span>
-          ))}
-        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[800px] border-collapse text-left">
+            <thead className="bg-[#0F1F3D]/[0.03] border-b border-slate-100">
+              <tr>
+                {["Kode", "Nama Pekerjaan", "Status", "Dibuat", "Aksi"].map(
+                  (h) => (
+                    <th
+                      key={h}
+                      className="px-5 py-3.5 text-[10px] font-black uppercase tracking-widest text-slate-400"
+                    >
+                      {h}
+                    </th>
+                  ),
+                )}
+              </tr>
+            </thead>
 
-        {filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-3 py-16 text-slate-400">
-            <FileText size={36} className="text-slate-200" />
-            <p className="text-sm">
-              {search
-                ? "Tidak ditemukan hasil pencarian."
-                : "Belum ada template pekerjaan."}
-            </p>
-            {!search && (
-              <Link
-                href="/master/jobs/create"
-                className="mt-1 rounded-lg bg-[#0F1F3D] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#1a3561]"
-              >
-                Buat Sekarang
-              </Link>
+            {filtered.length === 0 ? (
+              <tbody>
+                <tr>
+                  <td colSpan={5} className="py-16 text-center text-slate-400">
+                    <div className="flex flex-col items-center justify-center gap-3">
+                      <FileText size={36} className="text-slate-200" />
+                      <p className="text-sm">
+                        {search
+                          ? "Tidak ditemukan hasil pencarian."
+                          : "Belum ada template pekerjaan."}
+                      </p>
+                      {!search && (
+                        <Link
+                          href="/master/jobs/create"
+                          className="mt-1 rounded-lg bg-[#0F1F3D] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#1a3561]"
+                        >
+                          Buat Sekarang
+                        </Link>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            ) : (
+              <tbody className="divide-y divide-slate-100">
+                {filtered.map((job) => (
+                  <tr key={job._id} className="transition hover:bg-slate-50/80">
+                    {/* Kode */}
+                    <td className="px-5 py-4 font-mono text-xs font-bold text-[#0F1F3D] whitespace-nowrap">
+                      {job.kodePekerjaan}
+                    </td>
+
+                    {/* Nama Pekerjaan */}
+                    <td className="px-5 py-4 text-sm font-semibold text-slate-700">
+                      {job.namaPekerjaan}
+                    </td>
+
+                    {/* Status */}
+                    <td className="px-5 py-4 whitespace-nowrap">
+                      <span
+                        className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wider ${
+                          job.status === "active"
+                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                            : "bg-slate-100 text-slate-500 border border-slate-200"
+                        }`}
+                      >
+                        {job.status === "active" ? "Aktif" : "Nonaktif"}
+                      </span>
+                    </td>
+
+                    {/* Tanggal Dibuat */}
+                    <td className="px-5 py-4 text-xs text-slate-400 whitespace-nowrap">
+                      {new Date(job.createdAt).toLocaleDateString("id-ID", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </td>
+
+                    {/* Aksi */}
+                    <td className="px-5 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setSelectedJob(job);
+                            setIsModalOpen(true);
+                          }}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:border-[#0F1F3D] hover:text-[#0F1F3D]"
+                        >
+                          <Eye size={12} /> Detail
+                        </button>
+                        <Link
+                          href={`/master/jobs/${job._id}/edit`}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-[#F5A623]/30 bg-[#F5A623]/10 px-3 py-1.5 text-xs font-bold text-amber-700 transition hover:bg-[#F5A623]/20"
+                        >
+                          <Pencil size={12} /> Edit
+                        </Link>
+                        <button
+                          onClick={() => handleDelete(job._id)}
+                          disabled={deletingId === job._id}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-red-100 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-600 transition hover:bg-red-100 disabled:opacity-50"
+                        >
+                          <Trash2 size={12} />
+                          {deletingId === job._id ? "..." : "Hapus"}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
             )}
-          </div>
-        ) : (
-          <ul className="divide-y divide-slate-50">
-            {filtered.map((job) => (
-              <li
-                key={job._id}
-                className="grid grid-cols-[1fr_2fr_100px_140px_160px] items-center px-5 py-4 transition hover:bg-slate-50"
-              >
-                {/* Kode */}
-                <span className="font-mono text-xs font-bold text-[#0F1F3D]">
-                  {job.kodePekerjaan}
-                </span>
-
-                {/* Nama */}
-                <span className="text-sm font-semibold text-slate-700">
-                  {job.namaPekerjaan}
-                </span>
-
-                {/* Status */}
-                <span
-                  className={`inline-flex w-fit items-center rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wider ${
-                    job.status === "active"
-                      ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                      : "bg-slate-100 text-slate-500 border border-slate-200"
-                  }`}
-                >
-                  {job.status === "active" ? "Aktif" : "Nonaktif"}
-                </span>
-
-                {/* Tanggal */}
-                <span className="text-xs text-slate-400">
-                  {new Date(job.createdAt).toLocaleDateString("id-ID", {
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                  })}
-                </span>
-
-                {/* Aksi */}
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      setSelectedJob(job);
-                      setIsModalOpen(true);
-                    }}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:border-[#0F1F3D] hover:text-[#0F1F3D]"
-                  >
-                    <Eye size={12} /> Detail
-                  </button>
-                  <Link
-                    href={`/master/jobs/${job._id}/edit`}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-[#F5A623]/30 bg-[#F5A623]/10 px-3 py-1.5 text-xs font-bold text-amber-700 transition hover:bg-[#F5A623]/20"
-                  >
-                    <Pencil size={12} /> Edit
-                  </Link>
-                  <button
-                    onClick={() => handleDelete(job._id)}
-                    disabled={deletingId === job._id}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-red-100 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-600 transition hover:bg-red-100 disabled:opacity-50"
-                  >
-                    <Trash2 size={12} />
-                    {deletingId === job._id ? "..." : "Hapus"}
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
+          </table>
+        </div>
 
         {/* Footer count */}
         {filtered.length > 0 && (
-          <div className="border-t border-slate-100 px-5 py-3">
+          <div className="border-t border-slate-100 px-5 py-3 bg-white">
             <p className="text-xs text-slate-400">
               Menampilkan{" "}
               <span className="font-bold text-[#0F1F3D]">

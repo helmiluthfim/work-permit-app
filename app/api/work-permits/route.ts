@@ -5,6 +5,10 @@ import { connectDB } from "@/lib/mongodb";
 import JobTemplate from "@/models/JobTemplate";
 import WorkPermit from "@/models/WorkPermit";
 
+// 👇 TAMBAHAN WAJIB: Import model Personnel agar Mongoose mengenali skemanya
+// saat melakukan .populate() di metode GET.
+import Personnel from "@/models/Personnel";
+
 // ========================================================
 // GET: MENAMPILKAN DAFTAR WORK PERMIT
 // ========================================================
@@ -25,8 +29,8 @@ export async function GET(req: NextRequest) {
     // Urutkan berdasarkan data terbaru (createdAt: -1)
     const workPermits = await WorkPermit.find({})
       .populate("pekerjaan", "kodePekerjaan namaPekerjaan")
-      .populate("pjTeknik", "nama")
-      .populate("tenagaAhliK3", "nama")
+      .populate("pjTeknik", "nama") // Membutuhkan model Personnel
+      .populate("tenagaAhliK3", "nama") // Membutuhkan model Personnel
       .sort({ createdAt: -1 });
 
     return NextResponse.json({

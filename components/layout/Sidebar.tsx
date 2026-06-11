@@ -15,30 +15,32 @@ import {
   Menu,
   X,
   Shield,
+  FileText,
+  ClipboardCheck,
+  ShieldCheck,
+  Plus,
 } from "lucide-react";
 
 const menuByRole = {
   PJ_TEKNIK: [
     { title: "Dashboard", url: "/dashboard", icon: Home },
-    { title: "Work Permit", url: "/work-permits", icon: SquarePen },
-    { title: "JSA", url: "/jsa", icon: SquarePen },
-    { title: "HIRARC", url: "/hirarc", icon: SquarePen },
+    { title: "Buat Izin Kerja Baru", url: "/work-permits/create", icon: Plus },
+    { title: "Riwayat Pengajuan", url: "/work-permits", icon: FileText },
+    // JSA & HIRARC dihapus karena sudah include di dalam "Riwayat Pengajuan"
   ],
   TENAGA_AHLI_K3: [
     { title: "Dashboard", url: "/dashboard", icon: Home },
     {
-      title: "Review Work Permit",
+      title: "Antrean Review",
       url: "/work-permits/review",
-      icon: SquarePen,
+      icon: ClipboardCheck,
     },
-    { title: "Review JSA", url: "/jsa/review", icon: SquarePen },
-    { title: "Review HIRARC", url: "/hirarc/review", icon: SquarePen },
     { title: "Master Pekerjaan", url: "/master/jobs", icon: Briefcase },
     { title: "Master Personel", url: "/master/personnel", icon: Users },
   ],
   DIREKTUR: [
     { title: "Dashboard", url: "/dashboard", icon: Home },
-    { title: "Approval Dokumen", url: "/approval", icon: SquarePen },
+    { title: "Persetujuan Akhir", url: "/approval", icon: ShieldCheck },
   ],
 };
 
@@ -106,7 +108,18 @@ export default function AppSidebar() {
         </p>
         <ul className="flex flex-col gap-0.5">
           {menus.map((item) => {
-            const isActive = pathname === item.url;
+            let isActive = false;
+
+            if (item.url === "/work-permits") {
+              // Khusus "Riwayat Pengajuan" harus sama persis, agar tidak ikut menyala
+              // saat user berada di "/work-permits/create"
+              isActive = pathname === "/work-permits";
+            } else {
+              // Menu lain akan menyala jika URL sama persis ATAU sedang berada di sub-halamannya
+              // (Misal: "/work-permits/create/jsa" akan membuat "/work-permits/create" menyala)
+              isActive =
+                pathname === item.url || pathname.startsWith(`${item.url}/`);
+            }
             return (
               <li key={item.title}>
                 <Link

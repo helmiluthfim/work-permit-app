@@ -1,21 +1,30 @@
+// lib/mongodb.ts
 import mongoose from "mongoose";
 
-// Menambahkan tipe kembalian Promise<void> karena fungsi ini asinkron dan tidak mengembalikan nilai
-export const connectDB = async (): Promise<void> => {
-  try {
-    const uri = process.env.MONGODB_URI;
+// Daftarkan semua model di sini sekali selamanya
+import "@/models/Personnel";
+import "@/models/JobTemplate";
+import "@/models/WorkPermit";
+// tambahkan model lain di sini seiring berkembangnya project
 
-    // Memastikan URI tersedia sebelum digunakan
-    if (!uri) {
-      throw new Error(
-        "MONGODB_URI belum didefinisikan di dalam file environment (.env)",
-      );
-    }
+const MONGODB_URI = process.env.MONGODB_URI!;
 
-    await mongoose.connect(uri);
-    console.log("Connected to MongoDB");
-  } catch (error) {
-    // Menggunakan console.error untuk membedakan log error
-    console.error("Error connecting to MongoDB:", error);
+if (!MONGODB_URI) {
+  throw new Error("MONGODB_URI belum diset di .env");
+}
+
+// Cache koneksi agar tidak membuat koneksi baru di setiap request
+let cached = (global as any).mongoose || { conn: null, promise: null };
+
+export async function connectDB() {
+  if (cached.conn) return cached.conn;
+
+  if (!cached.promise) {
+    cached.promise = mongoose.connect(MONGODB_URI).then((m) => m);
   }
-};
+
+  cached.conn = await cached.promise;
+  (global as any).mongoose = cached;
+
+  return cached.conn;
+}
