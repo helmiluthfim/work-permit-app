@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { Shield } from "lucide-react";
 
 export default function Page() {
   const [username, setUsername] = useState<string>("");
@@ -106,7 +107,9 @@ export default function Page() {
       <div className="stripe-bg relative hidden w-1/2 flex-col justify-center overflow-hidden bg-[#0F1F3D] p-16 md:flex">
         {/* Company badge */}
         <div className="relative mb-12 flex items-center gap-3">
-          <div className="h-8 w-8 shrink-0 rounded-md bg-[#F5A623]" />
+          <div className="h-8 w-8 shrink-0 rounded-md bg-[#F5A623]">
+            <Shield size={15} color="#0F1F3D" strokeWidth={2.5} />
+          </div>
           <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#F5A623]">
             PT Eksavindo Mitra Mandiri
           </span>
