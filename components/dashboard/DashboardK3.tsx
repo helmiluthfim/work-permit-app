@@ -200,7 +200,7 @@ export default function DashboardK3() {
                   <li key={wp._id}>
                     <button
                       onClick={() =>
-                        router.push(`/work-permits/${wp._id}/review`)
+                        router.push(`/work-permits/review/${wp._id}`)
                       }
                       className="flex w-full items-center gap-4 px-6 py-4 text-left transition hover:bg-slate-50"
                     >
@@ -232,33 +232,6 @@ export default function DashboardK3() {
 
         {/* Kanan: aksi cepat + status ringkasan */}
         <div className="flex flex-col gap-6">
-          {/* Aksi cepat */}
-          <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-            <h2 className="mb-4 text-sm font-bold text-[#0F1F3D]">
-              Aksi Cepat
-            </h2>
-            <div className="flex flex-col gap-2">
-              <button
-                onClick={() => router.push("/work-permits/review")}
-                className="flex items-center gap-2 rounded-xl bg-[#0F1F3D] px-4 py-3 text-xs font-bold text-white transition hover:bg-[#1a3561]"
-              >
-                <FileSignature size={14} /> Review Work Permit
-              </button>
-              <button
-                onClick={() => router.push("/jsa/review")}
-                className="flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-xs font-bold text-slate-600 transition hover:bg-slate-50"
-              >
-                <FileSearch size={14} /> Review JSA
-              </button>
-              <button
-                onClick={() => router.push("/hirarc/review")}
-                className="flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-xs font-bold text-slate-600 transition hover:bg-slate-50"
-              >
-                <FileSearch size={14} /> Review HIRARC
-              </button>
-            </div>
-          </div>
-
           {/* Status ringkasan */}
           <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
             <h2 className="mb-4 text-sm font-bold text-[#0F1F3D]">

@@ -1,3 +1,4 @@
+import { Shield } from "lucide-react";
 import Link from "next/link";
 
 export default function HomePage() {
@@ -221,7 +222,9 @@ export default function HomePage() {
       <div className="relative z-20 flex h-screen w-full flex-col justify-center px-8 md:w-[55%] md:px-16 lg:px-24">
         {/* Company badge */}
         <div className="mb-8 flex items-center gap-3">
-          <div className="h-8 w-8 shrink-0 rounded-lg bg-[#F5A623]" />
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#F5A623]">
+            <Shield size={15} color="#0F1F3D" strokeWidth={2.5} />
+          </div>
           <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-[#F5A623]">
             PT Eksavindo Mitra Mandiri
           </span>

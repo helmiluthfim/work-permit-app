@@ -2,19 +2,19 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useSession } from "next-auth/react";
 import {
   Search,
   X,
   FileSignature,
   Eye,
   CheckCircle,
-  CheckCheck,
+  Clock,
   XCircle,
-  ShieldCheck,
   ListFilter,
+  CheckCheck,
 } from "lucide-react";
 
+// Menyesuaikan dengan model IWorkPermit
 interface WorkPermit {
   _id: string;
   nomorWP: string;
@@ -38,18 +38,15 @@ interface WorkPermit {
   createdAt: string;
 }
 
-export default function DirectorApprovalPage() {
-  const { data: session } = useSession();
+export default function WorkPermitReviewPage() {
   const [permits, setPermits] = useState<WorkPermit[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState<string>("menunggu"); // Default: Menunggu Direktur
-
-  const userRole = (session?.user as any)?.role || "";
-  const isDirektur = userRole === "DIREKTUR";
+  const [filterStatus, setFilterStatus] = useState<string>("all");
 
   const fetchPermits = async () => {
     try {
+      // Menarik semua data (Pastikan API GET /api/work-permits tidak dilimit status tertentu lagi)
       const res = await fetch("/api/work-permits");
       const result = await res.json();
 
@@ -67,18 +64,22 @@ export default function DirectorApprovalPage() {
     fetchPermits();
   }, []);
 
-  // Filter Logika Khusus Halaman Direktur
+  // Logika Filter Multi-lapis (Status & Pencarian Teks)
   const filtered = permits.filter((p) => {
-    // 1. Abaikan draft dan yang masih review awal (submitted)
-    if (p.status === "draft" || p.status === "submitted") return false;
+    // 1. Jangan tampilkan "draft" di halaman Review
+    if (p.status === "draft") return false;
 
-    // 2. Filter Tab
-    if (filterStatus === "menunggu" && p.status !== "approved_k3") return false;
-    if (filterStatus === "selesai" && p.status !== "approved_director")
+    // 2. Filter berdasarkan Tab Status
+    if (filterStatus === "review_k3" && p.status !== "submitted") return false;
+    if (filterStatus === "review_direktur" && p.status !== "approved_k3")
       return false;
-    if (filterStatus === "ditolak" && p.status !== "rejected") return false;
+    if (
+      filterStatus === "selesai" &&
+      !["approved_director", "rejected"].includes(p.status)
+    )
+      return false;
 
-    // 3. Pencarian Teks
+    // 3. Filter berdasarkan Pencarian Teks
     const searchString = search.toLowerCase();
     const nomor = p.nomorWP?.toLowerCase() || "";
     const pekerjaan = p.pekerjaan?.namaPekerjaan?.toLowerCase() || "";
@@ -91,18 +92,19 @@ export default function DirectorApprovalPage() {
     );
   });
 
+  // Helper untuk merender badge status sesuai hierarki
   const renderStatusBadge = (status: string) => {
     switch (status) {
       case "approved_director":
         return (
           <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-700">
-            <CheckCheck size={12} /> Sah (Direktur)
+            <CheckCheck size={12} /> Disetujui
           </span>
         );
       case "approved_k3":
         return (
           <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-blue-700">
-            <ShieldCheck size={12} /> Menunggu Pengesahan
+            <Clock size={12} /> Review Direktur
           </span>
         );
       case "rejected":
@@ -111,8 +113,13 @@ export default function DirectorApprovalPage() {
             <XCircle size={12} /> Ditolak
           </span>
         );
+      case "submitted":
       default:
-        return null;
+        return (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-amber-700">
+            <Clock size={12} /> Review K3
+          </span>
+        );
     }
   };
 
@@ -122,25 +129,7 @@ export default function DirectorApprovalPage() {
         <div className="flex flex-col items-center gap-3">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-[#0F1F3D]" />
           <p className="text-sm font-medium text-slate-400">
-            Menyiapkan dokumen pengesahan...
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // Jika yang akses bukan direktur (Opsional, proteksi UI lapis kedua)
-  if (!loading && !isDirektur && userRole !== "") {
-    return (
-      <div className="flex min-h-[70vh] items-center justify-center p-6 text-center">
-        <div className="max-w-md rounded-2xl border border-red-100 bg-red-50 p-8 shadow-sm">
-          <XCircle size={48} className="mx-auto mb-4 text-red-500" />
-          <h2 className="mb-2 text-xl font-black text-red-800">
-            Akses Ditolak
-          </h2>
-          <p className="text-sm text-red-600">
-            Halaman ini khusus diperuntukkan bagi Direktur untuk melakukan
-            pengesahan akhir Work Permit.
+            Memuat daftar Work Permit...
           </p>
         </div>
       </div>
@@ -153,24 +142,29 @@ export default function DirectorApprovalPage() {
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-[#F5A623]">
-            Otoritas Final
+            Persetujuan Dokumen
           </p>
           <h1 className="text-2xl font-black tracking-tight text-[#0F1F3D]">
-            Pengesahan Dokumen K3
+            Review Work Permit
           </h1>
           <p className="mt-1 text-sm text-slate-400">
-            Tinjau dan berikan persetujuan akhir pada SIKA yang telah lolos
-            evaluasi K3.
+            Periksa dan evaluasi pengajuan Surat Izin Kerja Aman (SIKA).
           </p>
         </div>
 
         {/* Counter Rekapitulasi */}
         <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 shadow-sm">
+            <span className="flex h-2 w-2 rounded-full bg-amber-500 animate-pulse"></span>
+            <span className="text-xs font-bold text-amber-800">
+              {permits.filter((p) => p.status === "submitted").length} Review K3
+            </span>
+          </div>
           <div className="flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 shadow-sm">
             <span className="flex h-2 w-2 rounded-full bg-blue-500 animate-pulse"></span>
             <span className="text-xs font-bold text-blue-800">
-              {permits.filter((p) => p.status === "approved_k3").length} Butuh
-              Pengesahan
+              {permits.filter((p) => p.status === "approved_k3").length} Review
+              Direktur
             </span>
           </div>
         </div>
@@ -181,9 +175,10 @@ export default function DirectorApprovalPage() {
         {/* TABS KATEGORI */}
         <div className="flex overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 shadow-sm scrollbar-hide">
           {[
-            { id: "menunggu", label: "Menunggu Pengesahan" },
-            { id: "selesai", label: "Riwayat Disahkan" },
-            { id: "ditolak", label: "Ditolak" },
+            { id: "all", label: "Semua Pengajuan" },
+            { id: "review_k3", label: "Menunggu K3" },
+            { id: "review_direktur", label: "Menunggu Direktur" },
+            { id: "selesai", label: "Selesai (Setuju/Tolak)" },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -232,7 +227,7 @@ export default function DirectorApprovalPage() {
                 {[
                   "No. Dokumen",
                   "Pekerjaan",
-                  "Pemohon (PJ)",
+                  "PJ Teknik",
                   "Jadwal Pelaksanaan",
                   "Status",
                   "Aksi",
@@ -252,13 +247,11 @@ export default function DirectorApprovalPage() {
                 <tr>
                   <td colSpan={6} className="py-16 text-center text-slate-400">
                     <div className="flex flex-col items-center justify-center gap-3">
-                      <ShieldCheck size={36} className="text-slate-200" />
+                      <ListFilter size={36} className="text-slate-200" />
                       <p className="text-sm">
-                        {search
-                          ? "Dokumen tidak ditemukan."
-                          : filterStatus === "menunggu"
-                            ? "Semua dokumen sudah disahkan. Tidak ada antrean."
-                            : "Belum ada riwayat dokumen di kategori ini."}
+                        {search || filterStatus !== "all"
+                          ? "Dokumen tidak ditemukan untuk filter ini."
+                          : "Belum ada pengajuan Work Permit untuk di-review."}
                       </p>
                     </div>
                   </td>
@@ -325,14 +318,16 @@ export default function DirectorApprovalPage() {
                       <Link
                         href={`/work-permits/review/${permit._id}`}
                         className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-bold transition ${
-                          permit.status === "approved_k3"
+                          ["submitted", "approved_k3"].includes(permit.status)
                             ? "border-[#0F1F3D] bg-[#0F1F3D] text-white hover:bg-[#1a3561]"
                             : "border-slate-200 bg-white text-slate-600 hover:border-[#0F1F3D] hover:text-[#0F1F3D]"
                         }`}
                       >
-                        {permit.status === "approved_k3" ? (
+                        {["submitted", "approved_k3"].includes(
+                          permit.status,
+                        ) ? (
                           <>
-                            <FileSignature size={12} /> Sahkan
+                            <FileSignature size={12} /> Evaluasi
                           </>
                         ) : (
                           <>

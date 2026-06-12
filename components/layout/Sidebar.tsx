@@ -40,7 +40,11 @@ const menuByRole = {
   ],
   DIREKTUR: [
     { title: "Dashboard", url: "/dashboard", icon: Home },
-    { title: "Persetujuan Akhir", url: "/approval", icon: ShieldCheck },
+    {
+      title: "Persetujuan Akhir",
+      url: "/work-permits/approval",
+      icon: ShieldCheck,
+    },
   ],
 };
 

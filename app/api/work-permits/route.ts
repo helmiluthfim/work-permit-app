@@ -25,12 +25,21 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Ambil data Work Permit dan hubungkan (populate) dengan koleksi terkait
-    // Urutkan berdasarkan data terbaru (createdAt: -1)
-    const workPermits = await WorkPermit.find({})
+    // Tangkap parameter status dari URL (jika ada)
+    const { searchParams } = new URL(req.url);
+    const statusFilter = searchParams.get("status");
+
+    // Siapkan object filter
+    const filter: any = {};
+    if (statusFilter) {
+      filter.status = statusFilter;
+    }
+
+    // Ambil data Work Permit beserta filternya
+    const workPermits = await WorkPermit.find(filter)
       .populate("pekerjaan", "kodePekerjaan namaPekerjaan")
-      .populate("pjTeknik", "nama") // Membutuhkan model Personnel
-      .populate("tenagaAhliK3", "nama") // Membutuhkan model Personnel
+      .populate("pjTeknik", "nama")
+      .populate("tenagaAhliK3", "nama")
       .sort({ createdAt: -1 });
 
     return NextResponse.json({
@@ -42,8 +51,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        message:
-          error.message || "Gagal mengambil data izin kerja (Work Permit)",
+        message: error.message || "Gagal mengambil data izin kerja",
       },
       { status: 500 },
     );

@@ -194,7 +194,7 @@ export default function DashboardDirektur() {
                 )}
               </div>
               <button
-                onClick={() => router.push("/approval")}
+                onClick={() => router.push("/work-permits/approval")}
                 className="flex items-center gap-1 text-xs font-semibold text-[#F5A623] transition hover:text-amber-600"
               >
                 Lihat Semua <ArrowRight size={12} />

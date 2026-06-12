@@ -333,32 +333,6 @@ export default function DashboardPjTeknik() {
               </ul>
             )}
           </div>
-
-          <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-            <h2 className="mb-4 text-sm font-bold text-[#0F1F3D]">
-              Aksi Cepat
-            </h2>
-            <div className="flex flex-col gap-2">
-              <button
-                onClick={() => router.push("/work-permits/create")}
-                className="flex items-center gap-2 rounded-xl bg-[#0F1F3D] px-4 py-3 text-xs font-bold text-white transition hover:bg-[#1a3561]"
-              >
-                <Plus size={14} /> Buat Work Permit
-              </button>
-              <button
-                onClick={() => router.push("/jsa")}
-                className="flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-xs font-bold text-slate-600 transition hover:bg-slate-50"
-              >
-                <FileText size={14} /> Buat JSA
-              </button>
-              <button
-                onClick={() => router.push("/hirarc")}
-                className="flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-xs font-bold text-slate-600 transition hover:bg-slate-50"
-              >
-                <FileText size={14} /> Buat HIRARC
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </div>
