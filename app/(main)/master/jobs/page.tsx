@@ -10,17 +10,11 @@ import {
   Pencil,
   Trash2,
   X,
-  ChevronRight,
   Briefcase,
   ListChecks,
-  AlertTriangle,
-  ShieldCheck,
+  Activity,
   ClipboardList,
   BookOpen,
-  Shield,
-  Ruler,
-  Wrench,
-  Activity,
 } from "lucide-react";
 
 interface JobTemplate {
@@ -39,20 +33,20 @@ interface JobTemplate {
 // ─── Shared helpers ──────────────────────────────────────────────────────────
 
 function SmartList({ items }: { items?: string[] }) {
-  if (!items || items.length === 0)
+  if (!items || !Array.isArray(items) || items.length === 0)
     return (
-      <span className="italic text-slate-400 text-sm">Tidak ada data</span>
+      <span className="text-sm italic text-slate-400">Tidak ada data</span>
     );
   return (
-    <div className="space-y-1 mt-1">
+    <div className="mt-1 space-y-1">
       {items.map((item, i) => {
-        const t = item.trim();
+        const t = item?.trim() || "";
         if (!t) return null;
         if (/^\d+\./.test(t))
           return (
             <p
               key={i}
-              className="text-xs font-black uppercase tracking-wide text-[#0F1F3D] mt-3 first:mt-0"
+              className="mt-3 text-xs font-black uppercase tracking-wide text-[#0F1F3D] first:mt-0"
             >
               {t}
             </p>
@@ -60,10 +54,10 @@ function SmartList({ items }: { items?: string[] }) {
         return (
           <div
             key={i}
-            className="flex items-start gap-2 ml-2 text-sm text-slate-700"
+            className="ml-2 flex items-start gap-2 text-sm text-slate-700"
           >
             <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#F5A623]" />
-            <span>{t.replace(/^- /, "")}</span>
+            <span className="break-words">{t.replace(/^- /, "")}</span>
           </div>
         );
       })}
@@ -111,10 +105,10 @@ function ScoreCell({
 }) {
   const style =
     variant === "red"
-      ? "bg-red-50 border-red-200 text-red-700"
+      ? "border-red-200 bg-red-50 text-red-700"
       : variant === "green"
-        ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-        : "bg-slate-50 border-slate-200 text-slate-700";
+        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+        : "border-slate-200 bg-slate-50 text-slate-700";
   return (
     <div
       className={`flex flex-col items-center rounded-lg border p-2 text-center ${style}`}
@@ -141,7 +135,7 @@ export default function JobTemplatePage() {
     try {
       const res = await fetch("/api/job-templates");
       const result = await res.json();
-      setJobs(result.data || []); // Ditambahkan fallback array kosong agar tidak error jika data null
+      setJobs(result.data || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -171,7 +165,6 @@ export default function JobTemplatePage() {
     }
   };
 
-  // Perbaikan utama: Menggunakan fallback `|| ""` agar pencarian aman dari data null/undefined
   const filtered = jobs.filter((j) => {
     const namaPekerjaan = j.namaPekerjaan || "";
     const kodePekerjaan = j.kodePekerjaan || "";
@@ -213,7 +206,7 @@ export default function JobTemplatePage() {
         </div>
         <Link
           href="/master/jobs/create"
-          className="inline-flex items-center gap-2 rounded-xl bg-[#0F1F3D] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:-translate-y-px hover:bg-[#1a3561] active:scale-95"
+          className="inline-flex items-center gap-2 rounded-xl bg-[#0F1F3D] px-5 py-3 text-sm font-bold text-white shadow-sm transition active:scale-95 hover:-translate-y-px hover:bg-[#1a3561]"
         >
           <Plus size={16} />
           Tambah Template
@@ -233,11 +226,10 @@ export default function JobTemplatePage() {
           placeholder="Cari kode atau nama pekerjaan..."
           className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-10 text-sm text-[#0F1F3D] outline-none transition focus:border-[#0F1F3D] focus:ring-2 focus:ring-[#0F1F3D]/10"
         />
-        {/* Tambahan kosmetik fungsional: Tombol 'X' untuk menghapus teks pencarian dengan cepat */}
         {search && (
           <button
             onClick={() => setSearch("")}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#0F1F3D] transition"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-[#0F1F3D]"
           >
             <X size={14} />
           </button>
@@ -248,7 +240,7 @@ export default function JobTemplatePage() {
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[800px] border-collapse text-left">
-            <thead className="bg-[#0F1F3D]/[0.03] border-b border-slate-100">
+            <thead className="border-b border-slate-100 bg-[#0F1F3D]/[0.03]">
               <tr>
                 {["Kode", "Nama Pekerjaan", "Status", "Dibuat", "Aksi"].map(
                   (h) => (
@@ -290,31 +282,27 @@ export default function JobTemplatePage() {
               <tbody className="divide-y divide-slate-100">
                 {filtered.map((job) => (
                   <tr key={job._id} className="transition hover:bg-slate-50/80">
-                    {/* Kode */}
-                    <td className="px-5 py-4 font-mono text-xs font-bold text-[#0F1F3D] whitespace-nowrap">
+                    <td className="whitespace-nowrap px-5 py-4 font-mono text-xs font-bold text-[#0F1F3D]">
                       {job.kodePekerjaan}
                     </td>
 
-                    {/* Nama Pekerjaan */}
                     <td className="px-5 py-4 text-sm font-semibold text-slate-700">
                       {job.namaPekerjaan}
                     </td>
 
-                    {/* Status */}
-                    <td className="px-5 py-4 whitespace-nowrap">
+                    <td className="whitespace-nowrap px-5 py-4">
                       <span
                         className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wider ${
                           job.status === "active"
-                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                            : "bg-slate-100 text-slate-500 border border-slate-200"
+                            ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
+                            : "border border-slate-200 bg-slate-100 text-slate-500"
                         }`}
                       >
                         {job.status === "active" ? "Aktif" : "Nonaktif"}
                       </span>
                     </td>
 
-                    {/* Tanggal Dibuat */}
-                    <td className="px-5 py-4 text-xs text-slate-400 whitespace-nowrap">
+                    <td className="whitespace-nowrap px-5 py-4 text-xs text-slate-400">
                       {new Date(job.createdAt).toLocaleDateString("id-ID", {
                         day: "numeric",
                         month: "short",
@@ -322,8 +310,7 @@ export default function JobTemplatePage() {
                       })}
                     </td>
 
-                    {/* Aksi */}
-                    <td className="px-5 py-4 whitespace-nowrap">
+                    <td className="whitespace-nowrap px-5 py-4">
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => {
@@ -359,7 +346,7 @@ export default function JobTemplatePage() {
 
         {/* Footer count */}
         {filtered.length > 0 && (
-          <div className="border-t border-slate-100 px-5 py-3 bg-white">
+          <div className="border-t border-slate-100 bg-white px-5 py-3">
             <p className="text-xs text-slate-400">
               Menampilkan{" "}
               <span className="font-bold text-[#0F1F3D]">
@@ -375,8 +362,8 @@ export default function JobTemplatePage() {
       {/* MODAL DETAIL                                             */}
       {/* ======================================================== */}
       {isModalOpen && selectedJob && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#0F1F3D]/60 backdrop-blur-sm p-4 sm:items-center animate-in fade-in duration-200">
-          <div className="flex h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl animate-in slide-in-from-bottom-4 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#0F1F3D]/60 p-4 backdrop-blur-sm duration-200 animate-in fade-in sm:items-center">
+          <div className="flex h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl duration-200 animate-in slide-in-from-bottom-4 sm:zoom-in-95 sm:slide-in-from-bottom-0">
             {/* Modal header */}
             <div className="flex shrink-0 items-center justify-between bg-[#0F1F3D] px-6 py-4">
               <div>
@@ -448,38 +435,47 @@ export default function JobTemplatePage() {
                 icon={ListChecks}
                 accent="bg-blue-600"
               >
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  {[
-                    {
-                      label: "Langkah Kerja",
-                      icon: ListChecks,
-                      items: selectedJob.jsaTemplate?.langkahKerja,
-                      bg: "bg-blue-50/50 border-blue-100",
-                    },
-                    {
-                      label: "Bahaya & Resiko",
-                      icon: AlertTriangle,
-                      items: selectedJob.jsaTemplate?.bahayaResiko,
-                      bg: "bg-red-50/50 border-red-100",
-                    },
-                    {
-                      label: "Tindakan Pengendalian",
-                      icon: ShieldCheck,
-                      items: selectedJob.jsaTemplate?.pengendalian,
-                      bg: "bg-emerald-50/50 border-emerald-100",
-                    },
-                  ].map((col) => (
-                    <div
-                      key={col.label}
-                      className={`rounded-xl border p-4 ${col.bg}`}
-                    >
-                      <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                        {col.label}
-                      </p>
-                      <SmartList items={col.items} />
-                    </div>
-                  ))}
-                </div>
+                {!selectedJob.jsaTemplate?.length ? (
+                  <p className="text-sm text-slate-500">
+                    Data JSA belum tersedia.
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {selectedJob.jsaTemplate.map((jsa: any, index: number) => (
+                      <div
+                        key={index}
+                        className="rounded-xl border border-slate-200 bg-white p-4"
+                      >
+                        <h4 className="mb-4 border-b border-slate-100 pb-2 font-bold text-[#0F1F3D]">
+                          {jsa.judulJsa || `Dokumen JSA #${index + 1}`}
+                        </h4>
+
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                          <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
+                            <p className="mb-2 text-xs font-bold">
+                              Langkah Kerja
+                            </p>
+                            <SmartList items={jsa.langkahKerja} />
+                          </div>
+
+                          <div className="rounded-xl border border-red-100 bg-red-50 p-4">
+                            <p className="mb-2 text-xs font-bold">
+                              Bahaya & Resiko
+                            </p>
+                            <SmartList items={jsa.bahayaResiko} />
+                          </div>
+
+                          <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4">
+                            <p className="mb-2 text-xs font-bold">
+                              Pengendalian
+                            </p>
+                            <SmartList items={jsa.pengendalian} />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </ModalSection>
 
               {/* ── 3. HIRARC ── */}
@@ -510,7 +506,6 @@ export default function JobTemplatePage() {
                             key={i}
                             className="overflow-hidden rounded-xl border border-slate-200 bg-white"
                           >
-                            {/* Card header strip */}
                             <div className="flex items-center gap-3 border-b border-slate-100 bg-[#0F1F3D]/[0.04] px-4 py-3">
                               <span className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-[#F5A623] text-[10px] font-black text-[#0F1F3D]">
                                 {i + 1}
@@ -520,7 +515,6 @@ export default function JobTemplatePage() {
                               </p>
                             </div>
                             <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2">
-                              {/* Left */}
                               <div className="space-y-3">
                                 {[
                                   { label: "Resiko", val: h.resiko?.[i] },
@@ -557,7 +551,6 @@ export default function JobTemplatePage() {
                                   </div>
                                 </div>
                               </div>
-                              {/* Right: scores */}
                               <div className="space-y-3">
                                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
                                   <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
@@ -625,45 +618,59 @@ export default function JobTemplatePage() {
                 icon={ClipboardList}
                 accent="bg-violet-600"
               >
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  {[
-                    {
-                      label: "Perlengkapan Kerja (APD)",
-                      icon: Shield,
-                      items: selectedJob.sopTemplate?.perlengkapanKerja,
-                      bg: "bg-emerald-50 border-emerald-100",
-                    },
-                    {
-                      label: "Peralatan Ukur",
-                      icon: Ruler,
-                      items: selectedJob.sopTemplate?.peralatanUkur,
-                      bg: "bg-violet-50 border-violet-100",
-                    },
-                    {
-                      label: "Peralatan Kerja",
-                      icon: Wrench,
-                      items: selectedJob.sopTemplate?.peralatanKerja,
-                      bg: "bg-amber-50 border-amber-100",
-                    },
-                    {
-                      label: "Uraian Kegiatan",
-                      icon: FileText,
-                      items: selectedJob.sopTemplate?.uraianKegiatan,
-                      bg: "bg-slate-50 border-slate-200",
-                      full: true,
-                    },
-                  ].map((col) => (
-                    <div
-                      key={col.label}
-                      className={`rounded-xl border p-4 ${col.bg} ${col.full ? "sm:col-span-2" : ""}`}
-                    >
-                      <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                        {col.label}
-                      </p>
-                      <SmartList items={col.items} />
-                    </div>
-                  ))}
-                </div>
+                {!selectedJob.sopTemplate?.length ? (
+                  <p className="text-sm text-slate-500">
+                    Data SOP belum tersedia.
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {selectedJob.sopTemplate.map((sop: any, index: number) => (
+                      <div
+                        key={index}
+                        className="rounded-xl border border-slate-200 bg-white p-4"
+                      >
+                        <h4 className="mb-4 border-b border-slate-100 pb-2 font-bold text-[#0F1F3D]">
+                          Dokumen SOP #{index + 1}
+                        </h4>
+
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                          <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4">
+                            <p className="mb-2 font-semibold">
+                              Perlengkapan Kerja
+                            </p>
+                            <SmartList items={sop.perlengkapanKerja} />
+                          </div>
+
+                          <div className="rounded-xl border border-violet-100 bg-violet-50 p-4">
+                            <p className="mb-2 font-semibold">Peralatan Ukur</p>
+                            <SmartList items={sop.peralatanUkur} />
+                          </div>
+
+                          <div className="rounded-xl border border-amber-100 bg-amber-50 p-4">
+                            <p className="mb-2 font-semibold">
+                              Peralatan Kerja
+                            </p>
+                            <SmartList items={sop.peralatanKerja} />
+                          </div>
+
+                          <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
+                            <p className="mb-2 font-semibold">
+                              Judul Uraian Kegiatan
+                            </p>
+                            <SmartList items={sop.judulUraianKegiatan} />
+                          </div>
+
+                          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 sm:col-span-2">
+                            <p className="mb-2 font-semibold">
+                              Uraian Kegiatan
+                            </p>
+                            <SmartList items={sop.uraianKegiatan} />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </ModalSection>
 
               {/* ── 5. IK ── */}
@@ -673,41 +680,64 @@ export default function JobTemplatePage() {
                 icon={BookOpen}
                 accent="bg-emerald-600"
               >
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  {[
-                    {
-                      label: "Perlengkapan Kerja (APD)",
-                      items: selectedJob.ikTemplate?.perlengkapanKerja,
-                      bg: "bg-emerald-50 border-emerald-100",
-                    },
-                    {
-                      label: "Peralatan Kerja",
-                      items: selectedJob.ikTemplate?.peralatanKerja,
-                      bg: "bg-amber-50 border-amber-100",
-                    },
-                    {
-                      label: "Uraian Kegiatan",
-                      items: selectedJob.ikTemplate?.uraianKegiatan,
-                      bg: "bg-slate-50 border-slate-200",
-                      full: true,
-                    },
-                  ].map((col) => (
-                    <div
-                      key={col.label}
-                      className={`rounded-xl border p-4 ${col.bg} ${col.full ? "sm:col-span-2" : ""}`}
-                    >
-                      <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                        {col.label}
-                      </p>
-                      <SmartList items={col.items} />
-                    </div>
-                  ))}
-                </div>
+                {!selectedJob.ikTemplate?.length ? (
+                  <p className="text-sm text-slate-500">
+                    Data IK belum tersedia.
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {selectedJob.ikTemplate.map((ik: any, index: number) => (
+                      <div
+                        key={index}
+                        className="rounded-xl border border-slate-200 bg-white p-4"
+                      >
+                        <h4 className="mb-4 border-b border-slate-100 pb-2 font-bold text-[#0F1F3D]">
+                          Dokumen IK #{index + 1}
+                        </h4>
+
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                          <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4">
+                            <p className="mb-2 font-semibold">
+                              Perlengkapan Kerja
+                            </p>
+                            <SmartList items={ik.perlengkapanKerja} />
+                          </div>
+
+                          <div className="rounded-xl border border-violet-100 bg-violet-50 p-4">
+                            <p className="mb-2 font-semibold">Peralatan Ukur</p>
+                            <SmartList items={ik.peralatanUkur} />
+                          </div>
+
+                          <div className="rounded-xl border border-amber-100 bg-amber-50 p-4">
+                            <p className="mb-2 font-semibold">
+                              Peralatan Kerja
+                            </p>
+                            <SmartList items={ik.peralatanKerja} />
+                          </div>
+
+                          <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
+                            <p className="mb-2 font-semibold">
+                              Judul Uraian Kegiatan
+                            </p>
+                            <SmartList items={ik.judulUraianKegiatan} />
+                          </div>
+
+                          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 sm:col-span-2">
+                            <p className="mb-2 font-semibold">
+                              Uraian Kegiatan
+                            </p>
+                            <SmartList items={ik.uraianKegiatan} />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </ModalSection>
             </div>
 
             {/* Modal footer */}
-            <div className="shrink-0 border-t border-slate-100 bg-white px-6 py-4 flex items-center justify-between">
+            <div className="flex shrink-0 items-center justify-between border-t border-slate-100 bg-white px-6 py-4">
               <p className="text-xs text-slate-400">
                 Dibuat:{" "}
                 <span className="font-semibold text-slate-600">

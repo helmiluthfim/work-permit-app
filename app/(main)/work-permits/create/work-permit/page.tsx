@@ -148,9 +148,9 @@ export default function TabWorkPermit() {
         selectedJob.workPermitTemplate?.prosedurPekerjaan,
       ),
       wpLampiran: arrayToText(selectedJob.workPermitTemplate?.lampiran),
-      jsaLangkah: arrayToText(selectedJob.jsaTemplate?.langkahKerja),
-      jsaBahaya: arrayToText(selectedJob.jsaTemplate?.bahayaResiko),
-      jsaPengendalian: arrayToText(selectedJob.jsaTemplate?.pengendalian),
+      jsaLangkah: arrayToText(selectedJob.jsaTemplate?.[0]?.langkahKerja),
+      jsaBahaya: arrayToText(selectedJob.jsaTemplate?.[0]?.bahayaResiko),
+      jsaPengendalian: arrayToText(selectedJob.jsaTemplate?.[0]?.pengendalian),
       hirarcPotensi: arrayToText(selectedJob.hirarcTemplate?.potensiBahaya),
       hirarcResiko: arrayToText(selectedJob.hirarcTemplate?.resiko),
       hirarcKeparahan: arrayToText(
@@ -175,14 +175,24 @@ export default function TabWorkPermit() {
       hirarcPenanggungJawab: arrayToText(
         selectedJob.hirarcTemplate?.penanggungJawab,
       ),
-      sopPerlengkapan: arrayToText(selectedJob.sopTemplate?.perlengkapanKerja),
-      sopAlatUkur: arrayToText(selectedJob.sopTemplate?.peralatanUkur),
-      sopAlatKerja: arrayToText(selectedJob.sopTemplate?.peralatanKerja),
-      sopUraian: arrayToText(selectedJob.sopTemplate?.uraianKegiatan),
-      ikPerlengkapan: arrayToText(selectedJob.ikTemplate?.perlengkapanKerja),
-      ikAlatUkur: arrayToText(selectedJob.ikTemplate?.peralatanUkur),
-      ikAlatKerja: arrayToText(selectedJob.ikTemplate?.peralatanKerja),
-      ikUraian: arrayToText(selectedJob.ikTemplate?.uraianKegiatan),
+      sopPerlengkapan: arrayToText(
+        selectedJob.sopTemplate?.[0]?.perlengkapanKerja,
+      ),
+      sopAlatUkur: arrayToText(selectedJob.sopTemplate?.[0]?.peralatanUkur),
+      sopAlatKerja: arrayToText(selectedJob.sopTemplate?.[0]?.peralatanKerja),
+      sopJudulUraianKegiatan: arrayToText(
+        selectedJob.sopTemplate?.[0]?.judulUraianKegiatan,
+      ),
+      sopUraian: arrayToText(selectedJob.sopTemplate?.[0]?.uraianKegiatan),
+      ikPerlengkapan: arrayToText(
+        selectedJob.ikTemplate?.[0]?.perlengkapanKerja,
+      ),
+      ikAlatUkur: arrayToText(selectedJob.ikTemplate?.[0]?.peralatanUkur),
+      ikAlatKerja: arrayToText(selectedJob.ikTemplate?.[0]?.peralatanKerja),
+      ikJudulUraianKegiatan: arrayToText(
+        selectedJob.ikTemplate?.[0]?.judulUraianKegiatan,
+      ),
+      ikUraian: arrayToText(selectedJob.ikTemplate?.[0]?.uraianKegiatan),
     }));
   };
 

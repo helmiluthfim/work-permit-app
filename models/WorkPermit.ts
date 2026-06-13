@@ -33,6 +33,7 @@ export interface IWorkPermit extends Document {
   jsaData: {
     // Tambahkan pelaksana di sini! Merujuk ke banyak Personnel (Array)
     pelaksana: mongoose.Types.ObjectId[];
+    judulJsa: string;
     langkahKerja: string[];
     bahayaResiko: string[];
     pengendalian: string[];
@@ -56,6 +57,7 @@ export interface IWorkPermit extends Document {
     perlengkapanKerja: string[];
     peralatanUkur: string[];
     peralatanKerja: string[];
+    judulUraianKegiatan: string[];
     uraianKegiatan: string[];
   };
 
@@ -63,6 +65,7 @@ export interface IWorkPermit extends Document {
     perlengkapanKerja: string[];
     peralatanUkur: string[];
     peralatanKerja: string[];
+    judulUraianKegiatan: string[];
     uraianKegiatan: string[];
   };
 }
@@ -104,6 +107,7 @@ const WorkPermitSchema = new Schema<IWorkPermit>(
     jsaData: {
       // Definisi array of ObjectId di Mongoose
       pelaksana: [{ type: Schema.Types.ObjectId, ref: "Personnel" }],
+      judulJsa: String,
       langkahKerja: [String],
       bahayaResiko: [String],
       pengendalian: [String],
@@ -127,6 +131,7 @@ const WorkPermitSchema = new Schema<IWorkPermit>(
       perlengkapanKerja: [String],
       peralatanUkur: [String],
       peralatanKerja: [String],
+      judulUraianKegiatan: [String],
       uraianKegiatan: [String],
     },
 
@@ -134,6 +139,7 @@ const WorkPermitSchema = new Schema<IWorkPermit>(
       perlengkapanKerja: [String],
       peralatanUkur: [String],
       peralatanKerja: [String],
+      judulUraianKegiatan: [String],
       uraianKegiatan: [String],
     },
   },

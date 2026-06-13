@@ -1,5 +1,28 @@
 import mongoose, { Document, Model, Schema } from "mongoose";
 
+export interface IJSATemplate {
+  judulJsa: string;
+  langkahKerja: string[];
+  bahayaResiko: string[];
+  pengendalian: string[];
+}
+
+export interface ISOPTemplate {
+  perlengkapanKerja: string[];
+  peralatanUkur: string[];
+  peralatanKerja: string[];
+  judulUraianKegiatan: string[];
+  uraianKegiatan: string[];
+}
+
+export interface IIKTemplate {
+  perlengkapanKerja: string[];
+  peralatanUkur: string[];
+  peralatanKerja: string[];
+  judulUraianKegiatan: string[];
+  uraianKegiatan: string[];
+}
+
 export interface IJobTemplate extends Document {
   kodePekerjaan: string;
   namaPekerjaan: string;
@@ -10,11 +33,7 @@ export interface IJobTemplate extends Document {
     lampiran: string[];
   };
 
-  jsaTemplate: {
-    langkahKerja: string[];
-    bahayaResiko: string[];
-    pengendalian: string[];
-  };
+  jsaTemplate: IJSATemplate[];
 
   hirarcTemplate: {
     potensiBahaya: string[];
@@ -26,23 +45,13 @@ export interface IJobTemplate extends Document {
     konsekuensiSetelahPengendalian: string[];
     kemungkinanTerjadiSetelahPengendalian: string[];
     tingkatResikoSetelahPengendalian: string[];
-    statusPengendalian: string;
+    statusPengendalian: string[];
     penanggungJawab: string[];
   };
 
-  sopTemplate: {
-    perlengkapanKerja: string[];
-    peralatanUkur: string[];
-    peralatanKerja: string[];
-    uraianKegiatan: string[];
-  };
+  sopTemplate: ISOPTemplate[];
 
-  ikTemplate: {
-    perlengkapanKerja: string[];
-    peralatanUkur: string[];
-    peralatanKerja: string[];
-    uraianKegiatan: string[];
-  };
+  ikTemplate: IIKTemplate[];
 
   status: "active" | "inactive";
 
@@ -63,6 +72,7 @@ const WorkPermitTemplateSchema = new Schema(
 
 const JSATemplateSchema = new Schema(
   {
+    judulJsa: String,
     langkahKerja: [String],
     bahayaResiko: [String],
     pengendalian: [String],
@@ -81,7 +91,7 @@ const HIRARCTemplateSchema = new Schema(
     konsekuensiSetelahPengendalian: [String],
     kemungkinanTerjadiSetelahPengendalian: [String],
     tingkatResikoSetelahPengendalian: [String],
-    statusPengendalian: String,
+    statusPengendalian: [String],
     penanggungJawab: [String],
   },
   { _id: false },
@@ -92,6 +102,7 @@ const SOPTemplateSchema = new Schema(
     perlengkapanKerja: [String],
     peralatanUkur: [String],
     peralatanKerja: [String],
+    judulUraianKegiatan: [String],
     uraianKegiatan: [String],
   },
   { _id: false },
@@ -102,6 +113,7 @@ const IKTemplateSchema = new Schema(
     perlengkapanKerja: [String],
     peralatanUkur: [String],
     peralatanKerja: [String],
+    judulUraianKegiatan: [String],
     uraianKegiatan: [String],
   },
   { _id: false },
@@ -128,8 +140,8 @@ const JobTemplateSchema = new Schema<IJobTemplate>(
     },
 
     jsaTemplate: {
-      type: JSATemplateSchema,
-      default: {},
+      type: [JSATemplateSchema], // <-- Tambahkan kurung siku []
+      default: [], // <-- Ubah default menjadi array kosong
     },
 
     hirarcTemplate: {
@@ -138,13 +150,13 @@ const JobTemplateSchema = new Schema<IJobTemplate>(
     },
 
     sopTemplate: {
-      type: SOPTemplateSchema,
-      default: {},
+      type: [SOPTemplateSchema],
+      default: [],
     },
 
     ikTemplate: {
-      type: IKTemplateSchema,
-      default: {},
+      type: [IKTemplateSchema],
+      default: [],
     },
 
     status: {

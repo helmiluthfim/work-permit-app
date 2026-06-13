@@ -92,10 +92,12 @@ export default function CreateWorkPermitLayout({
     sopPerlengkapan: "",
     sopAlatUkur: "",
     sopAlatKerja: "",
+    sopJudulUraianKegiatan: "",
     sopUraian: "",
     ikPerlengkapan: "",
     ikAlatUkur: "",
     ikAlatKerja: "",
+    ikJudulUraianKegiatan: "",
     ikUraian: "",
   });
 

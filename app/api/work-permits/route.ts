@@ -131,6 +131,38 @@ export async function POST(req: NextRequest) {
 
     const nomorWP = `WP-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
+    const toStringArray = (val: any): string[] =>
+      Array.isArray(val)
+        ? val.map((s: any) => String(s).trim()).filter(Boolean)
+        : typeof val === "string"
+          ? [val.trim()].filter(Boolean)
+          : [];
+
+    const firstString = (val: any): string =>
+      Array.isArray(val) ? (val[0] ?? "") : typeof val === "string" ? val : "";
+
+    const sanitizedHirarcData = hirarcData
+      ? {
+          potensiBahaya: toStringArray(hirarcData.potensiBahaya),
+          resiko: toStringArray(hirarcData.resiko),
+          pengendalian: toStringArray(hirarcData.pengendalian),
+          penanggungJawab: toStringArray(hirarcData.penanggungJawab),
+          konsekuensiKeparahan: toStringArray(hirarcData.konsekuensiKeparahan),
+          kemungkinanTerjadi: toStringArray(hirarcData.kemungkinanTerjadi),
+          tingkatResiko: toStringArray(hirarcData.tingkatResiko),
+          konsekuensiSetelahPengendalian: toStringArray(
+            hirarcData.konsekuensiSetelahPengendalian,
+          ),
+          kemungkinanTerjadiSetelahPengendalian: toStringArray(
+            hirarcData.kemungkinanTerjadiSetelahPengendalian,
+          ),
+          tingkatResikoSetelahPengendalian: toStringArray(
+            hirarcData.tingkatResikoSetelahPengendalian,
+          ),
+          statusPengendalian: firstString(hirarcData.statusPengendalian), // ← String, bukan array
+        }
+      : {};
+
     const workPermit = await WorkPermit.create({
       nomorWP,
       pekerjaan,
@@ -147,7 +179,7 @@ export async function POST(req: NextRequest) {
 
       workPermitData,
       jsaData,
-      hirarcData,
+      hirarcData: sanitizedHirarcData, // Gunakan data yang sudah disanitasi
       sopData,
       ikData,
     });

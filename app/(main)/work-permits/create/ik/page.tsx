@@ -162,12 +162,14 @@ export default function TabIK() {
         perlengkapanKerja: textToArray(formData.sopPerlengkapan),
         peralatanUkur: textToArray(formData.sopAlatUkur),
         peralatanKerja: textToArray(formData.sopAlatKerja),
+        judulUraianKegiatan: textToArray(formData.sopJudulUraianKegiatan),
         uraianKegiatan: textToArray(formData.sopUraian),
       },
       ikData: {
         perlengkapanKerja: textToArray(formData.ikPerlengkapan),
         peralatanUkur: textToArray(formData.ikAlatUkur),
         peralatanKerja: textToArray(formData.ikAlatKerja),
+        judulUraianKegiatan: textToArray(formData.ikJudulUraianKegiatan),
         uraianKegiatan: textToArray(formData.ikUraian),
       },
     };
@@ -290,6 +292,16 @@ export default function TabIK() {
       </div>
 
       {/* ── URAIAN KEGIATAN DETAIL ── */}
+      <SectionCard
+        title="Judul Uraian Kegiatan"
+        icon={FileText}
+        badge="Read Only"
+      >
+        <div className="min-h-[6rem]">
+          <FormattedText text={formData.ikJudulUraianKegiatan} />
+        </div>
+      </SectionCard>
+
       <SectionCard
         title="Uraian Kegiatan Detail"
         icon={FileText}

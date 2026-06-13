@@ -665,21 +665,70 @@ export default function WorkPermitDetailPage() {
                           PIC: {h.penanggungJawab[i]}
                         </p>
                       </div>
-                      <div className="flex gap-4">
-                        <div className="flex-1 bg-slate-50 p-2 rounded border border-slate-100 text-center">
-                          <p className="text-[10px] font-bold text-slate-400 uppercase">
-                            Skor Awal
-                          </p>
-                          <p className="text-sm font-black mt-1">
-                            {h.tingkatResiko[i]}
-                          </p>
+                      <div className="space-y-2">
+                        {/* Baris 1: Keparahan & Kemungkinan Awal */}
+                        <div className="flex gap-2">
+                          <div className="flex-1 bg-slate-50 p-2 rounded border border-slate-100 text-center">
+                            <p className="text-[9px] font-bold text-slate-400 uppercase leading-tight">
+                              Keparahan
+                            </p>
+                            <p className="text-xs font-black mt-0.5">
+                              {h.konsekuensiKeparahan[i]}
+                            </p>
+                          </div>
+                          <div className="flex-1 bg-slate-50 p-2 rounded border border-slate-100 text-center">
+                            <p className="text-[9px] font-bold text-slate-400 uppercase leading-tight">
+                              Kemungkinan
+                            </p>
+                            <p className="text-xs font-black mt-0.5">
+                              {h.kemungkinanTerjadi[i]}
+                            </p>
+                          </div>
+                          <div className="flex-1 bg-slate-50 p-2 rounded border border-slate-100 text-center">
+                            <p className="text-[9px] font-bold text-slate-400 uppercase leading-tight">
+                              Skor Awal
+                            </p>
+                            <p className="text-xs font-black mt-0.5">
+                              {h.tingkatResiko[i]}
+                            </p>
+                          </div>
                         </div>
-                        <div className="flex-1 bg-emerald-50 p-2 rounded border border-emerald-100 text-center">
-                          <p className="text-[10px] font-bold text-emerald-600 uppercase">
-                            Skor Sisa
+
+                        {/* Baris 2: Keparahan & Kemungkinan Setelah */}
+                        <div className="flex gap-2">
+                          <div className="flex-1 bg-emerald-50 p-2 rounded border border-emerald-100 text-center">
+                            <p className="text-[9px] font-bold text-emerald-600 uppercase leading-tight">
+                              Keparahan*
+                            </p>
+                            <p className="text-xs font-black text-emerald-700 mt-0.5">
+                              {h.konsekuensiSetelahPengendalian[i]}
+                            </p>
+                          </div>
+                          <div className="flex-1 bg-emerald-50 p-2 rounded border border-emerald-100 text-center">
+                            <p className="text-[9px] font-bold text-emerald-600 uppercase leading-tight">
+                              Kemungkinan*
+                            </p>
+                            <p className="text-xs font-black text-emerald-700 mt-0.5">
+                              {h.kemungkinanTerjadiSetelahPengendalian[i]}
+                            </p>
+                          </div>
+                          <div className="flex-1 bg-emerald-50 p-2 rounded border border-emerald-100 text-center">
+                            <p className="text-[9px] font-bold text-emerald-600 uppercase leading-tight">
+                              Skor Sisa
+                            </p>
+                            <p className="text-xs font-black text-emerald-700 mt-0.5">
+                              {h.tingkatResikoSetelahPengendalian[i]}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Status */}
+                        <div className="bg-blue-50 p-2 rounded border border-blue-100 text-center">
+                          <p className="text-[9px] font-bold text-blue-600 uppercase leading-tight">
+                            Status Pengendalian
                           </p>
-                          <p className="text-sm font-black text-emerald-700 mt-1">
-                            {h.tingkatResikoSetelahPengendalian[i]}
+                          <p className="text-xs font-semibold text-blue-700 mt-0.5">
+                            {h.statusPengendalian[i] || "—"}
                           </p>
                         </div>
                       </div>
@@ -708,6 +757,24 @@ export default function WorkPermitDetailPage() {
               </div>
               <div>
                 <p className="text-xs font-bold text-slate-500 uppercase">
+                  Peralatan Ukur
+                </p>
+                <SmartList items={permit.sopData?.peralatanUkur} />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-500 uppercase">
+                  Peralatan Kerja
+                </p>
+                <SmartList items={permit.sopData?.peralatanKerja} />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-500 uppercase">
+                  Judul Uraian Kegiatan
+                </p>
+                <SmartList items={permit.sopData?.judulUraianKegiatan} />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-500 uppercase">
                   Uraian Kegiatan
                 </p>
                 <SmartList items={permit.sopData?.uraianKegiatan} />
@@ -724,9 +791,27 @@ export default function WorkPermitDetailPage() {
             <div className="space-y-4">
               <div>
                 <p className="text-xs font-bold text-slate-500 uppercase">
+                  APD / Perlengkapan
+                </p>
+                <SmartList items={permit.ikData?.perlengkapanKerja} />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-500 uppercase">
+                  Peralatan Ukur
+                </p>
+                <SmartList items={permit.ikData?.peralatanUkur} />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-500 uppercase">
                   Peralatan Kerja
                 </p>
                 <SmartList items={permit.ikData?.peralatanKerja} />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-500 uppercase">
+                  Judul Uraian Kegiatan
+                </p>
+                <SmartList items={permit.ikData?.judulUraianKegiatan} />
               </div>
               <div>
                 <p className="text-xs font-bold text-slate-500 uppercase">

@@ -154,6 +154,16 @@ export default function TabSOP() {
         </div>
       </div>
 
+      <SectionCard
+        title="Judul Uraian Kegiatan"
+        icon={FileText}
+        badge="Read Only"
+      >
+        <div className="min-h-[6rem]">
+          <FormattedText text={formData.sopJudulUraianKegiatan} />
+        </div>
+      </SectionCard>
+
       {/* ── URAIAN KEGIATAN ── */}
       <SectionCard title="Uraian Kegiatan" icon={FileText} badge="Read Only">
         <div className="min-h-[10rem]">
