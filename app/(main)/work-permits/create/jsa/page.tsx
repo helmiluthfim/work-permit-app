@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   Info,
   UserCheck,
+  FileText,
 } from "lucide-react";
 import { WorkPermitFormContext } from "../layout";
 import {
@@ -32,6 +33,7 @@ interface JobTemplate {
   _id: string;
   kodePekerjaan: string;
   namaPekerjaan: string;
+  jsaTemplate?: any[]; // Ditambahkan untuk mencegah error TypeScript
 }
 
 // Kolom JSA read-only
@@ -243,40 +245,71 @@ export default function TabJSA() {
         icon={CheckSquare}
         badge="Read Only"
       >
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <JsaColumn
-            icon={ListChecks}
-            accentBg="bg-blue-50/50"
-            accentBorder="border-blue-100"
-            accentIcon="text-blue-500"
-            label="Langkah Kerja"
-          >
-            <FormattedText text={formData.jsaLangkah} />
-          </JsaColumn>
+        // Tampilkan semua dokumen JSA dari jsaDocs
+        {!formData.jsaDocs || formData.jsaDocs.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-slate-200 py-8 text-center">
+            <p className="text-sm text-slate-400">
+              Data JSA belum tersedia untuk template pekerjaan ini.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-8">
+            {formData.jsaDocs.map((jsa: any, idx: number) => (
+              <div
+                key={idx}
+                className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm"
+              >
+                {/* Judul JSA */}
+                <div className="mb-5 flex items-center gap-3 border-b border-slate-100 pb-4">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0F1F3D]/5">
+                    <FileText size={16} className="text-[#0F1F3D]" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                      Dokumen JSA
+                    </p>
+                    <h4 className="text-sm font-bold text-[#0F1F3D]">
+                      {jsa.judulJsa || `JSA #${idx + 1}`}
+                    </h4>
+                  </div>
+                </div>
 
-          <JsaColumn
-            icon={AlertTriangle}
-            accentBg="bg-red-50/50"
-            accentBorder="border-red-100"
-            accentIcon="text-red-500"
-            label="Bahaya & Resiko"
-          >
-            <FormattedText text={formData.jsaBahaya} />
-          </JsaColumn>
-
-          <JsaColumn
-            icon={ShieldCheck}
-            accentBg="bg-emerald-50/50"
-            accentBorder="border-emerald-100"
-            accentIcon="text-emerald-600"
-            label="Tindakan Pengendalian"
-          >
-            <FormattedText text={formData.jsaPengendalian} />
-          </JsaColumn>
-        </div>
-
+                {/* Tiga Kolom */}
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <JsaColumn
+                    icon={ListChecks}
+                    accentBg="bg-blue-50/50"
+                    accentBorder="border-blue-100"
+                    accentIcon="text-blue-500"
+                    label="Langkah Kerja"
+                  >
+                    <FormattedText text={jsa.langkahKerja} />
+                  </JsaColumn>
+                  <JsaColumn
+                    icon={AlertTriangle}
+                    accentBg="bg-red-50/50"
+                    accentBorder="border-red-100"
+                    accentIcon="text-red-500"
+                    label="Bahaya & Resiko"
+                  >
+                    <FormattedText text={jsa.bahayaResiko} />
+                  </JsaColumn>
+                  <JsaColumn
+                    icon={ShieldCheck}
+                    accentBg="bg-emerald-50/50"
+                    accentBorder="border-emerald-100"
+                    accentIcon="text-emerald-600"
+                    label="Tindakan Pengendalian"
+                  >
+                    <FormattedText text={jsa.pengendalian} />
+                  </JsaColumn>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
         {/* Catatan */}
-        <div className="mt-5 flex items-start gap-3 rounded-xl border border-[#F5A623]/30 bg-[#F5A623]/8 p-4">
+        <div className="mt-6 flex items-start gap-3 rounded-xl border border-[#F5A623]/30 bg-[#F5A623]/8 p-4">
           <Info size={16} className="mt-0.5 shrink-0 text-[#F5A623]" />
           <p className="text-xs leading-relaxed text-slate-600">
             <span className="font-bold text-[#0F1F3D]">Catatan Penting: </span>

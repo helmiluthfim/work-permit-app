@@ -29,15 +29,16 @@ export interface IWorkPermit extends Document {
     lampiran: string[];
   };
 
-  // 2. Dokumen JSA (DIPERBARUI)
+  // Pelaksana dipindah ke root — berlaku untuk semua dokumen JSA
+  pelaksana: mongoose.Types.ObjectId[];
+
+  // jsaData sekarang array of subdocuments
   jsaData: {
-    // Tambahkan pelaksana di sini! Merujuk ke banyak Personnel (Array)
-    pelaksana: mongoose.Types.ObjectId[];
     judulJsa: string;
     langkahKerja: string[];
     bahayaResiko: string[];
     pengendalian: string[];
-  };
+  }[];
 
   hirarcData: {
     potensiBahaya: string[];
@@ -54,20 +55,22 @@ export interface IWorkPermit extends Document {
   };
 
   sopData: {
+    judulSop: string;
     perlengkapanKerja: string[];
     peralatanUkur: string[];
     peralatanKerja: string[];
     judulUraianKegiatan: string[];
     uraianKegiatan: string[];
-  };
+  }[];
 
   ikData: {
+    judulIk: string;
     perlengkapanKerja: string[];
     peralatanUkur: string[];
     peralatanKerja: string[];
     judulUraianKegiatan: string[];
     uraianKegiatan: string[];
-  };
+  }[];
 }
 
 const WorkPermitSchema = new Schema<IWorkPermit>(
@@ -103,15 +106,18 @@ const WorkPermitSchema = new Schema<IWorkPermit>(
       lampiran: [String],
     },
 
-    // DOKUMEN JSA (DIPERBARUI)
-    jsaData: {
-      // Definisi array of ObjectId di Mongoose
-      pelaksana: [{ type: Schema.Types.ObjectId, ref: "Personnel" }],
-      judulJsa: String,
-      langkahKerja: [String],
-      bahayaResiko: [String],
-      pengendalian: [String],
-    },
+    // ✅ Pelaksana di root level
+    pelaksana: [{ type: Schema.Types.ObjectId, ref: "Personnel" }],
+
+    // ✅ jsaData sekarang array of subdocuments
+    jsaData: [
+      {
+        judulJsa: String,
+        langkahKerja: [String],
+        bahayaResiko: [String],
+        pengendalian: [String],
+      },
+    ],
 
     hirarcData: {
       potensiBahaya: [String],
@@ -127,25 +133,30 @@ const WorkPermitSchema = new Schema<IWorkPermit>(
       penanggungJawab: [String],
     },
 
-    sopData: {
-      perlengkapanKerja: [String],
-      peralatanUkur: [String],
-      peralatanKerja: [String],
-      judulUraianKegiatan: [String],
-      uraianKegiatan: [String],
-    },
+    // ✅ sopData & ikData juga array (konsisten dengan template)
+    sopData: [
+      {
+        judulSop: String,
+        perlengkapanKerja: [String],
+        peralatanUkur: [String],
+        peralatanKerja: [String],
+        judulUraianKegiatan: [String],
+        uraianKegiatan: [String],
+      },
+    ],
 
-    ikData: {
-      perlengkapanKerja: [String],
-      peralatanUkur: [String],
-      peralatanKerja: [String],
-      judulUraianKegiatan: [String],
-      uraianKegiatan: [String],
-    },
+    ikData: [
+      {
+        judulIk: String,
+        perlengkapanKerja: [String],
+        peralatanUkur: [String],
+        peralatanKerja: [String],
+        judulUraianKegiatan: [String],
+        uraianKegiatan: [String],
+      },
+    ],
   },
-  {
-    timestamps: true,
-  },
+  { timestamps: true },
 );
 
 const WorkPermit: Model<IWorkPermit> =

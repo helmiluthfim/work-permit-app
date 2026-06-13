@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import Link from "next/link";
 import {
   ArrowLeft,
   CheckCircle,
@@ -26,19 +25,35 @@ import {
 } from "lucide-react";
 
 // Helper Component: Menampilkan List Array
-function SmartList({ items }: { items?: string[] }) {
-  if (!items || items.length === 0)
+function SmartList({ items }: { items?: any[] }) {
+  if (!items || !Array.isArray(items) || items.length === 0)
     return (
       <span className="text-sm italic text-slate-400">Tidak ada data</span>
     );
   return (
-    <div className="space-y-1.5 mt-2">
-      {items.map((item, i) => (
-        <div key={i} className="flex items-start gap-2 text-sm text-slate-700">
-          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#F5A623]" />
-          <span>{item}</span>
-        </div>
-      ))}
+    <div className="mt-2 space-y-1.5">
+      {items.map((item, i) => {
+        const t = typeof item === "string" ? item.trim() : String(item || "");
+        if (!t) return null;
+        if (/^\d+\./.test(t))
+          return (
+            <p
+              key={i}
+              className="mt-2 text-xs font-black uppercase tracking-wide text-[#0F1F3D] first:mt-0"
+            >
+              {t}
+            </p>
+          );
+        return (
+          <div
+            key={i}
+            className="flex items-start gap-2 text-sm text-slate-700"
+          >
+            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#F5A623]" />
+            <span className="break-words">{t.replace(/^- /, "")}</span>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -86,7 +101,7 @@ export default function WorkPermitDetailPage() {
   const [catatanPenolakan, setCatatanPenolakan] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
 
-  // Re-submit (Duplikasi) States - Ditambah State Waktu
+  // Re-submit (Duplikasi) States
   const [isResubmitModalOpen, setIsResubmitModalOpen] = useState(false);
   const [newTanggalMulai, setNewTanggalMulai] = useState("");
   const [newWaktuMulai, setNewWaktuMulai] = useState("");
@@ -113,7 +128,6 @@ export default function WorkPermitDetailPage() {
     fetchDetail();
   }, [id]);
 
-  // Fungsi: Update Status (Approve/Reject)
   const updateStatus = async (newStatus: string, catatan = "") => {
     setIsSubmitting(true);
     try {
@@ -142,12 +156,10 @@ export default function WorkPermitDetailPage() {
     }
   };
 
-  // Fungsi: Cetak PDF
   const handleExportPDF = () => {
     window.open(`/work-permits/print/${id}`, "_blank");
   };
 
-  // Fungsi: Duplikasi/Ajukan Ulang dengan tanggal & waktu baru
   const handleResubmit = async () => {
     if (
       !newTanggalMulai ||
@@ -161,23 +173,26 @@ export default function WorkPermitDetailPage() {
 
     setIsSubmitting(true);
     try {
-      // Menyalin format data dari permit saat ini, lalu menyesuaikan value-nya
+      // Ekstrak pelaksana array dengan aman
+      const currentPelaksana = (permit.pelaksana || []).map(
+        (p: any) => p._id || p,
+      );
+
       const payload = {
         pekerjaan: permit.pekerjaan._id,
         lokasi: permit.lokasi,
         tanggalMulai: newTanggalMulai,
-        waktuMulai: newWaktuMulai, // Gunakan waktu yang baru diisi
+        waktuMulai: newWaktuMulai,
         tanggalSelesai: newTanggalSelesai,
-        waktuSelesai: newWaktuSelesai, // Gunakan waktu yang baru diisi
+        waktuSelesai: newWaktuSelesai,
         pjTeknik: permit.pjTeknik._id,
         noTelpPjTeknik: permit.noTelpPjTeknik,
         tenagaAhliK3: permit.tenagaAhliK3._id,
         noTelpTenagaAhliK3: permit.noTelpTenagaAhliK3,
         workPermitData: permit.workPermitData,
-        // Map pelaksana kembali menjadi array of IDs agar API POST mau menerimanya
         jsaData: {
           ...permit.jsaData,
-          pelaksana: permit.jsaData.pelaksana.map((p: any) => p._id),
+          pelaksana: currentPelaksana.map((p: any) => p._id || p),
         },
         hirarcData: permit.hirarcData,
         sopData: permit.sopData,
@@ -209,7 +224,6 @@ export default function WorkPermitDetailPage() {
     }
   };
 
-  // Saat membuka modal, opsional kita bisa mengisikan input waktu dengan waktu sebelumnya
   const openResubmitModal = () => {
     setNewWaktuMulai(permit.waktuMulai);
     setNewWaktuSelesai(permit.waktuSelesai);
@@ -232,12 +246,35 @@ export default function WorkPermitDetailPage() {
     );
   }
 
+  // ─── AMAN-KAN EKSTRAKSI ARRAY DATA (Penyebab data sebelumnya tidak muncul) ───
+  const extractArray = (dataField: any) => {
+    if (!dataField) return [];
+    if (Array.isArray(dataField)) return dataField;
+    // Cek jika dibungkus property tertentu sesuai skema backend yang mungkin bervariasi
+    if (Array.isArray(dataField.jsaTemplate)) return dataField.jsaTemplate;
+    if (Array.isArray(dataField.sopTemplate)) return dataField.sopTemplate;
+    if (Array.isArray(dataField.ikTemplate)) return dataField.ikTemplate;
+    if (Array.isArray(dataField.documents)) return dataField.documents;
+    if (Array.isArray(dataField.data)) return dataField.data;
+
+    // Fallback jika masih format object 1 dimensi (lama)
+    return [dataField];
+  };
+
+  // ✅ Semua sudah array langsung dari DB
+  const jsaDocs = Array.isArray(permit.jsaData) ? permit.jsaData : [];
+  const sopDocs = Array.isArray(permit.sopData) ? permit.sopData : [];
+  const ikDocs = Array.isArray(permit.ikData) ? permit.ikData : [];
+
+  // ✅ Pelaksana dari root
+  const pelaksanaList = permit.pelaksana || [];
+
   return (
-    <div className="min-h-full w-full bg-[#F7F8FA] p-6 md:p-8 relative">
+    <div className="relative min-h-full w-full bg-[#F7F8FA] p-6 md:p-8">
       {/* ── MODAL SUKSES ── */}
       {showSuccess && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0F1F3D]/60 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="mx-4 flex max-w-sm flex-col items-center rounded-3xl bg-white p-10 text-center shadow-2xl animate-in zoom-in-95 duration-300">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0F1F3D]/60 backdrop-blur-sm duration-300 animate-in fade-in">
+          <div className="mx-4 flex max-w-sm flex-col items-center rounded-3xl bg-white p-10 text-center shadow-2xl duration-300 animate-in zoom-in-95">
             <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100">
               <CheckCircle2 size={44} className="text-emerald-500" />
             </div>
@@ -263,11 +300,11 @@ export default function WorkPermitDetailPage() {
         </div>
       )}
 
-      {/* ── MODAL PENOLAKAN (Khusus K3 / Direktur) ── */}
+      {/* ── MODAL PENOLAKAN ── */}
       {isRejectModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0F1F3D]/60 p-4 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-            <h2 className="text-lg font-black text-[#0F1F3D] flex items-center gap-2">
+            <h2 className="flex items-center gap-2 text-lg font-black text-[#0F1F3D]">
               <XCircle className="text-red-600" /> Tolak Work Permit
             </h2>
             <p className="mt-2 text-sm text-slate-500">
@@ -278,7 +315,7 @@ export default function WorkPermitDetailPage() {
               value={catatanPenolakan}
               onChange={(e) => setCatatanPenolakan(e.target.value)}
               placeholder="Contoh: Dokumen JSA kurang lengkap pada bagian pengendalian risiko."
-              className="mt-4 w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 min-h-[120px]"
+              className="mt-4 min-h-[120px] w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
             />
             <div className="mt-6 flex justify-end gap-3">
               <button
@@ -299,21 +336,18 @@ export default function WorkPermitDetailPage() {
         </div>
       )}
 
-      {/* ── MODAL AJUKAN ULANG (Khusus PJ Teknik) ── */}
+      {/* ── MODAL AJUKAN ULANG ── */}
       {isResubmitModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0F1F3D]/60 p-4 backdrop-blur-sm">
           <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
-            <h2 className="text-lg font-black text-[#0F1F3D] flex items-center gap-2">
+            <h2 className="flex items-center gap-2 text-lg font-black text-[#0F1F3D]">
               <Copy className="text-blue-600" /> Ajukan Ulang / Perpanjang
             </h2>
             <p className="mt-2 text-sm text-slate-500">
               Pengajuan baru akan dibuat menyalin dokumen saat ini. Silakan atur
               jadwal pelaksanaan (Tanggal & Waktu) yang baru.
             </p>
-
-            {/* Grid 2x2 untuk Tanggal & Waktu */}
-            <div className="mt-5 grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
-              {/* Mulai */}
+            <div className="mt-5 grid grid-cols-2 gap-4 rounded-xl border border-slate-100 bg-slate-50 p-4">
               <div>
                 <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-slate-500">
                   Tanggal Mulai Baru
@@ -336,8 +370,6 @@ export default function WorkPermitDetailPage() {
                   className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                 />
               </div>
-
-              {/* Selesai */}
               <div>
                 <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-slate-500">
                   Tanggal Selesai Baru
@@ -361,7 +393,6 @@ export default function WorkPermitDetailPage() {
                 />
               </div>
             </div>
-
             <div className="mt-6 flex justify-end gap-3">
               <button
                 onClick={() => setIsResubmitModalOpen(false)}
@@ -425,9 +456,8 @@ export default function WorkPermitDetailPage() {
           </p>
         </div>
 
-        {/* Action Buttons Group (Berdasarkan Role) */}
+        {/* Action Buttons Group */}
         <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-2 shadow-sm">
-          {/* ----- AKSI KHUSUS K3 / DIREKTUR ----- */}
           {(isK3 && permit.status === "submitted") ||
           (isDirektur && permit.status === "approved_k3") ? (
             <button
@@ -459,7 +489,6 @@ export default function WorkPermitDetailPage() {
             </button>
           )}
 
-          {/* ----- AKSI KHUSUS PJ TEKNIK ----- */}
           {isPjTeknik && permit.status === "approved_director" && (
             <>
               <button
@@ -468,7 +497,6 @@ export default function WorkPermitDetailPage() {
               >
                 <Download size={16} /> Unduh PDF
               </button>
-
               <button
                 onClick={openResubmitModal}
                 className="inline-flex items-center gap-2 rounded-lg bg-[#0F1F3D] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#1a3561]"
@@ -478,7 +506,6 @@ export default function WorkPermitDetailPage() {
             </>
           )}
 
-          {/* Pesan jika tidak punya akses aksi */}
           {((!isK3 && !isDirektur && !isPjTeknik) ||
             (isK3 && permit.status !== "submitted") ||
             (isDirektur && permit.status !== "approved_k3") ||
@@ -498,7 +525,7 @@ export default function WorkPermitDetailPage() {
               <p className="text-sm font-bold text-red-800">
                 Catatan Penolakan:
               </p>
-              <p className="text-sm text-red-700 mt-1">
+              <p className="mt-1 text-sm text-red-700">
                 {permit.catatanPenolakan}
               </p>
             </div>
@@ -590,39 +617,54 @@ export default function WorkPermitDetailPage() {
           accent="bg-blue-600"
         >
           <div className="mb-6 rounded-xl border border-blue-100 bg-blue-50/50 p-4">
-            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500 flex items-center gap-2">
+            <p className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-500">
               <Users size={14} /> Daftar Pelaksana
             </p>
             <div className="flex flex-wrap gap-2">
-              {permit.jsaData?.pelaksana?.map((p: any) => (
+              {pelaksanaList.map((p: any, idx: number) => (
                 <span
-                  key={p._id}
-                  className="rounded-lg bg-white px-3 py-1.5 text-sm font-bold border border-blue-100 text-blue-900 shadow-sm"
+                  key={p._id || idx}
+                  className="rounded-lg border border-blue-100 bg-white px-3 py-1.5 text-sm font-bold text-blue-900 shadow-sm"
                 >
-                  {p.nama}
+                  {p.nama || "Pelaksana Pekerjaan"}
                 </span>
               ))}
             </div>
           </div>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                Langkah Kerja
-              </p>
-              <SmartList items={permit.jsaData?.langkahKerja} />
-            </div>
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                Bahaya & Resiko
-              </p>
-              <SmartList items={permit.jsaData?.bahayaResiko} />
-            </div>
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                Tindakan Pengendalian
-              </p>
-              <SmartList items={permit.jsaData?.pengendalian} />
-            </div>
+
+          <div className="space-y-6">
+            {jsaDocs.map((jsa: any, index: number) => (
+              <div
+                key={index}
+                className="rounded-xl border border-slate-200 bg-white p-5"
+              >
+                <h4 className="mb-4 border-b border-slate-100 pb-3 text-sm font-bold text-[#0F1F3D]">
+                  {jsa.judulJsa || `Dokumen JSA #${index + 1}`}
+                </h4>
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+                  <div>
+                    <p className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-500">
+                      Langkah Kerja
+                    </p>
+                    <SmartList items={jsa.langkahKerja || jsa.jsaLangkah} />
+                  </div>
+                  <div>
+                    <p className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-500">
+                      Bahaya &amp; Resiko
+                    </p>
+                    <SmartList items={jsa.bahayaResiko || jsa.jsaBahaya} />
+                  </div>
+                  <div>
+                    <p className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-500">
+                      Tindakan Pengendalian
+                    </p>
+                    <SmartList
+                      items={jsa.pengendalian || jsa.jsaPengendalian}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </DocumentSection>
 
@@ -640,9 +682,9 @@ export default function WorkPermitDetailPage() {
                 return (
                   <div
                     key={i}
-                    className="rounded-xl border border-slate-200 overflow-hidden"
+                    className="overflow-hidden rounded-xl border border-slate-200"
                   >
-                    <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex items-center gap-3">
+                    <div className="flex items-center gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3">
                       <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#0F1F3D] text-[10px] font-bold text-white">
                         {i + 1}
                       </span>
@@ -650,9 +692,9 @@ export default function WorkPermitDetailPage() {
                         {potensi}
                       </p>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+                    <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-2">
                       <div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase">
+                        <p className="text-[10px] font-bold uppercase text-slate-400">
                           Resiko & Pengendalian
                         </p>
                         <p className="mt-1 text-sm font-semibold text-red-700">
@@ -666,68 +708,63 @@ export default function WorkPermitDetailPage() {
                         </p>
                       </div>
                       <div className="space-y-2">
-                        {/* Baris 1: Keparahan & Kemungkinan Awal */}
                         <div className="flex gap-2">
-                          <div className="flex-1 bg-slate-50 p-2 rounded border border-slate-100 text-center">
-                            <p className="text-[9px] font-bold text-slate-400 uppercase leading-tight">
+                          <div className="flex-1 rounded border border-slate-100 bg-slate-50 p-2 text-center">
+                            <p className="text-[9px] font-bold uppercase leading-tight text-slate-400">
                               Keparahan
                             </p>
-                            <p className="text-xs font-black mt-0.5">
+                            <p className="mt-0.5 text-xs font-black">
                               {h.konsekuensiKeparahan[i]}
                             </p>
                           </div>
-                          <div className="flex-1 bg-slate-50 p-2 rounded border border-slate-100 text-center">
-                            <p className="text-[9px] font-bold text-slate-400 uppercase leading-tight">
+                          <div className="flex-1 rounded border border-slate-100 bg-slate-50 p-2 text-center">
+                            <p className="text-[9px] font-bold uppercase leading-tight text-slate-400">
                               Kemungkinan
                             </p>
-                            <p className="text-xs font-black mt-0.5">
+                            <p className="mt-0.5 text-xs font-black">
                               {h.kemungkinanTerjadi[i]}
                             </p>
                           </div>
-                          <div className="flex-1 bg-slate-50 p-2 rounded border border-slate-100 text-center">
-                            <p className="text-[9px] font-bold text-slate-400 uppercase leading-tight">
+                          <div className="flex-1 rounded border border-slate-100 bg-slate-50 p-2 text-center">
+                            <p className="text-[9px] font-bold uppercase leading-tight text-slate-400">
                               Skor Awal
                             </p>
-                            <p className="text-xs font-black mt-0.5">
+                            <p className="mt-0.5 text-xs font-black">
                               {h.tingkatResiko[i]}
                             </p>
                           </div>
                         </div>
-
-                        {/* Baris 2: Keparahan & Kemungkinan Setelah */}
                         <div className="flex gap-2">
-                          <div className="flex-1 bg-emerald-50 p-2 rounded border border-emerald-100 text-center">
-                            <p className="text-[9px] font-bold text-emerald-600 uppercase leading-tight">
+                          <div className="flex-1 rounded border border-emerald-100 bg-emerald-50 p-2 text-center">
+                            <p className="text-[9px] font-bold uppercase leading-tight text-emerald-600">
                               Keparahan*
                             </p>
-                            <p className="text-xs font-black text-emerald-700 mt-0.5">
+                            <p className="mt-0.5 text-xs font-black text-emerald-700">
                               {h.konsekuensiSetelahPengendalian[i]}
                             </p>
                           </div>
-                          <div className="flex-1 bg-emerald-50 p-2 rounded border border-emerald-100 text-center">
-                            <p className="text-[9px] font-bold text-emerald-600 uppercase leading-tight">
+                          <div className="flex-1 rounded border border-emerald-100 bg-emerald-50 p-2 text-center">
+                            <p className="text-[9px] font-bold uppercase leading-tight text-emerald-600">
                               Kemungkinan*
                             </p>
-                            <p className="text-xs font-black text-emerald-700 mt-0.5">
+                            <p className="mt-0.5 text-xs font-black text-emerald-700">
                               {h.kemungkinanTerjadiSetelahPengendalian[i]}
                             </p>
                           </div>
-                          <div className="flex-1 bg-emerald-50 p-2 rounded border border-emerald-100 text-center">
-                            <p className="text-[9px] font-bold text-emerald-600 uppercase leading-tight">
+                          <div className="flex-1 rounded border border-emerald-100 bg-emerald-50 p-2 text-center">
+                            <p className="text-[9px] font-bold uppercase leading-tight text-emerald-600">
                               Skor Sisa
                             </p>
-                            <p className="text-xs font-black text-emerald-700 mt-0.5">
+                            <p className="mt-0.5 text-xs font-black text-emerald-700">
                               {h.tingkatResikoSetelahPengendalian[i]}
                             </p>
                           </div>
                         </div>
-
-                        {/* Status */}
-                        <div className="bg-blue-50 p-2 rounded border border-blue-100 text-center">
-                          <p className="text-[9px] font-bold text-blue-600 uppercase leading-tight">
+                        <div className="rounded border border-blue-100 bg-blue-50 p-2 text-center">
+                          <p className="text-[9px] font-bold uppercase leading-tight text-blue-600">
                             Status Pengendalian
                           </p>
-                          <p className="text-xs font-semibold text-blue-700 mt-0.5">
+                          <p className="mt-0.5 text-xs font-semibold text-blue-700">
                             {h.statusPengendalian[i] || "—"}
                           </p>
                         </div>
@@ -741,44 +778,56 @@ export default function WorkPermitDetailPage() {
         </DocumentSection>
 
         {/* 4. SOP & IK */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <DocumentSection
             number={4}
             title="SOP"
             icon={ClipboardList}
             accent="bg-violet-600"
           >
-            <div className="space-y-4">
-              <div>
-                <p className="text-xs font-bold text-slate-500 uppercase">
-                  APD / Perlengkapan
-                </p>
-                <SmartList items={permit.sopData?.perlengkapanKerja} />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-slate-500 uppercase">
-                  Peralatan Ukur
-                </p>
-                <SmartList items={permit.sopData?.peralatanUkur} />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-slate-500 uppercase">
-                  Peralatan Kerja
-                </p>
-                <SmartList items={permit.sopData?.peralatanKerja} />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-slate-500 uppercase">
-                  Judul Uraian Kegiatan
-                </p>
-                <SmartList items={permit.sopData?.judulUraianKegiatan} />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-slate-500 uppercase">
-                  Uraian Kegiatan
-                </p>
-                <SmartList items={permit.sopData?.uraianKegiatan} />
-              </div>
+            <div className="space-y-6">
+              {sopDocs.map((sop: any, idx: number) => (
+                <div
+                  key={idx}
+                  className="rounded-xl border border-slate-200 bg-white p-5"
+                >
+                  <h4 className="mb-4 border-b border-slate-100 pb-3 text-sm font-bold text-[#0F1F3D]">
+                    {sop.judulSop || `Dokumen SOP #${idx + 1}`}
+                  </h4>
+                  <div className="space-y-4">
+                    <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3">
+                      <p className="text-xs font-bold uppercase text-slate-500">
+                        APD / Perlengkapan
+                      </p>
+                      <SmartList items={sop.perlengkapanKerja} />
+                    </div>
+                    <div className="rounded-xl border border-violet-100 bg-violet-50 p-3">
+                      <p className="text-xs font-bold uppercase text-slate-500">
+                        Peralatan Ukur
+                      </p>
+                      <SmartList items={sop.peralatanUkur} />
+                    </div>
+                    <div className="rounded-xl border border-amber-100 bg-amber-50 p-3">
+                      <p className="text-xs font-bold uppercase text-slate-500">
+                        Peralatan Kerja
+                      </p>
+                      <SmartList items={sop.peralatanKerja} />
+                    </div>
+                    <div className="rounded-xl border border-blue-100 bg-blue-50 p-3">
+                      <p className="text-xs font-bold uppercase text-slate-500">
+                        Judul Uraian Kegiatan
+                      </p>
+                      <SmartList items={sop.judulUraianKegiatan} />
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <p className="text-xs font-bold uppercase text-slate-500">
+                        Uraian Kegiatan
+                      </p>
+                      <SmartList items={sop.uraianKegiatan} />
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </DocumentSection>
 
@@ -788,37 +837,49 @@ export default function WorkPermitDetailPage() {
             icon={BookOpen}
             accent="bg-emerald-600"
           >
-            <div className="space-y-4">
-              <div>
-                <p className="text-xs font-bold text-slate-500 uppercase">
-                  APD / Perlengkapan
-                </p>
-                <SmartList items={permit.ikData?.perlengkapanKerja} />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-slate-500 uppercase">
-                  Peralatan Ukur
-                </p>
-                <SmartList items={permit.ikData?.peralatanUkur} />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-slate-500 uppercase">
-                  Peralatan Kerja
-                </p>
-                <SmartList items={permit.ikData?.peralatanKerja} />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-slate-500 uppercase">
-                  Judul Uraian Kegiatan
-                </p>
-                <SmartList items={permit.ikData?.judulUraianKegiatan} />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-slate-500 uppercase">
-                  Uraian Kegiatan
-                </p>
-                <SmartList items={permit.ikData?.uraianKegiatan} />
-              </div>
+            <div className="space-y-6">
+              {ikDocs.map((ik: any, idx: number) => (
+                <div
+                  key={idx}
+                  className="rounded-xl border border-slate-200 bg-white p-5"
+                >
+                  <h4 className="mb-4 border-b border-slate-100 pb-3 text-sm font-bold text-[#0F1F3D]">
+                    {ik.judulIk || `Dokumen IK #${idx + 1}`}
+                  </h4>
+                  <div className="space-y-4">
+                    <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3">
+                      <p className="text-xs font-bold uppercase text-slate-500">
+                        APD / Perlengkapan
+                      </p>
+                      <SmartList items={ik.perlengkapanKerja} />
+                    </div>
+                    <div className="rounded-xl border border-violet-100 bg-violet-50 p-3">
+                      <p className="text-xs font-bold uppercase text-slate-500">
+                        Peralatan Ukur
+                      </p>
+                      <SmartList items={ik.peralatanUkur} />
+                    </div>
+                    <div className="rounded-xl border border-amber-100 bg-amber-50 p-3">
+                      <p className="text-xs font-bold uppercase text-slate-500">
+                        Peralatan Kerja
+                      </p>
+                      <SmartList items={ik.peralatanKerja} />
+                    </div>
+                    <div className="rounded-xl border border-blue-100 bg-blue-50 p-3">
+                      <p className="text-xs font-bold uppercase text-slate-500">
+                        Judul Uraian Kegiatan
+                      </p>
+                      <SmartList items={ik.judulUraianKegiatan} />
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <p className="text-xs font-bold uppercase text-slate-500">
+                        Uraian Kegiatan
+                      </p>
+                      <SmartList items={ik.uraianKegiatan} />
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </DocumentSection>
         </div>

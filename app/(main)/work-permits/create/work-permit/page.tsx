@@ -141,6 +141,8 @@ export default function TabWorkPermit() {
     setFormData((prev: any) => ({
       ...prev,
       pekerjaanId: jobId,
+
+      // Work Permit
       wpKlasifikasi: arrayToText(
         selectedJob.workPermitTemplate?.klasifikasiPekerjaan,
       ),
@@ -148,9 +150,16 @@ export default function TabWorkPermit() {
         selectedJob.workPermitTemplate?.prosedurPekerjaan,
       ),
       wpLampiran: arrayToText(selectedJob.workPermitTemplate?.lampiran),
-      jsaLangkah: arrayToText(selectedJob.jsaTemplate?.[0]?.langkahKerja),
-      jsaBahaya: arrayToText(selectedJob.jsaTemplate?.[0]?.bahayaResiko),
-      jsaPengendalian: arrayToText(selectedJob.jsaTemplate?.[0]?.pengendalian),
+
+      // ✅ JSA — simpan SEMUA dokumen, bukan hanya [0]
+      jsaDocs: (selectedJob.jsaTemplate || []).map((jsa: any) => ({
+        judulJsa: jsa.judulJsa || "",
+        langkahKerja: arrayToText(jsa.langkahKerja),
+        bahayaResiko: arrayToText(jsa.bahayaResiko),
+        pengendalian: arrayToText(jsa.pengendalian),
+      })),
+
+      // HIRARC — tetap sama
       hirarcPotensi: arrayToText(selectedJob.hirarcTemplate?.potensiBahaya),
       hirarcResiko: arrayToText(selectedJob.hirarcTemplate?.resiko),
       hirarcKeparahan: arrayToText(
@@ -175,24 +184,26 @@ export default function TabWorkPermit() {
       hirarcPenanggungJawab: arrayToText(
         selectedJob.hirarcTemplate?.penanggungJawab,
       ),
-      sopPerlengkapan: arrayToText(
-        selectedJob.sopTemplate?.[0]?.perlengkapanKerja,
-      ),
-      sopAlatUkur: arrayToText(selectedJob.sopTemplate?.[0]?.peralatanUkur),
-      sopAlatKerja: arrayToText(selectedJob.sopTemplate?.[0]?.peralatanKerja),
-      sopJudulUraianKegiatan: arrayToText(
-        selectedJob.sopTemplate?.[0]?.judulUraianKegiatan,
-      ),
-      sopUraian: arrayToText(selectedJob.sopTemplate?.[0]?.uraianKegiatan),
-      ikPerlengkapan: arrayToText(
-        selectedJob.ikTemplate?.[0]?.perlengkapanKerja,
-      ),
-      ikAlatUkur: arrayToText(selectedJob.ikTemplate?.[0]?.peralatanUkur),
-      ikAlatKerja: arrayToText(selectedJob.ikTemplate?.[0]?.peralatanKerja),
-      ikJudulUraianKegiatan: arrayToText(
-        selectedJob.ikTemplate?.[0]?.judulUraianKegiatan,
-      ),
-      ikUraian: arrayToText(selectedJob.ikTemplate?.[0]?.uraianKegiatan),
+
+      // ✅ SOP — simpan SEMUA dokumen
+      sopDocs: (selectedJob.sopTemplate || []).map((sop: any) => ({
+        judulSop: sop.judulSop || "",
+        perlengkapanKerja: arrayToText(sop.perlengkapanKerja),
+        peralatanUkur: arrayToText(sop.peralatanUkur),
+        peralatanKerja: arrayToText(sop.peralatanKerja),
+        judulUraianKegiatan: arrayToText(sop.judulUraianKegiatan),
+        uraianKegiatan: arrayToText(sop.uraianKegiatan),
+      })),
+
+      // ✅ IK — simpan SEMUA dokumen
+      ikDocs: (selectedJob.ikTemplate || []).map((ik: any) => ({
+        judulIk: ik.judulIk || "",
+        perlengkapanKerja: arrayToText(ik.perlengkapanKerja),
+        peralatanUkur: arrayToText(ik.peralatanUkur),
+        peralatanKerja: arrayToText(ik.peralatanKerja),
+        judulUraianKegiatan: arrayToText(ik.judulUraianKegiatan),
+        uraianKegiatan: arrayToText(ik.uraianKegiatan),
+      })),
     }));
   };
 

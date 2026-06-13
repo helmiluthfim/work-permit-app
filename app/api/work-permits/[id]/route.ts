@@ -3,20 +3,17 @@ import { getServerSession } from "next-auth";
 import { authOption } from "@/app/api/auth/[...nextauth]/route";
 import { connectDB } from "@/lib/mongodb";
 import WorkPermit from "@/models/WorkPermit";
-import Personnel from "@/models/Personnel";
-import JobTemplate from "@/models/JobTemplate";
 
 // ========================================================
 // GET: MENGAMBIL DETAIL SATU WORK PERMIT
 // ========================================================
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }, // 1. Ubah tipe menjadi Promise
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     await connectDB();
 
-    // 2. Lakukan await pada params sebelum digunakan
     const resolvedParams = await params;
     const id = resolvedParams.id;
 
@@ -28,12 +25,11 @@ export async function GET(
       );
     }
 
-    // 3. Gunakan id yang sudah di-resolve
     const workPermit = await WorkPermit.findById(id)
       .populate("pekerjaan", "kodePekerjaan namaPekerjaan")
       .populate("pjTeknik", "nama jabatan")
       .populate("tenagaAhliK3", "nama jabatan")
-      .populate("jsaData.pelaksana", "nama jabatan");
+      .populate("pelaksana", "nama jabatan"); // ✅ pelaksana di root // ✅ Sudah benar karena jsaData adalah object tunggal
 
     if (!workPermit) {
       return NextResponse.json(
@@ -43,7 +39,7 @@ export async function GET(
     }
 
     return NextResponse.json(
-      { success: true, data: workPermit },
+      { success: true, data: workPermit.toObject() },
       { status: 200 },
     );
   } catch (error: any) {
@@ -63,12 +59,11 @@ export async function GET(
 // ========================================================
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }, // 1. Ubah tipe menjadi Promise
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     await connectDB();
 
-    // 2. Lakukan await pada params sebelum digunakan
     const resolvedParams = await params;
     const id = resolvedParams.id;
 
@@ -103,12 +98,18 @@ export async function PATCH(
       updateData.catatanPenolakan = "";
     }
 
-    // 3. Gunakan id yang sudah di-resolve
     const updatedWorkPermit = await WorkPermit.findByIdAndUpdate(
       id,
       updateData,
-      { returnDocument: "after", runValidators: true }, // <--- Ganti menjadi ini
+      { returnDocument: "after", runValidators: true },
     );
+
+    if (!updatedWorkPermit) {
+      return NextResponse.json(
+        { success: false, message: "Data tidak ditemukan" },
+        { status: 404 },
+      );
+    }
 
     return NextResponse.json(
       {

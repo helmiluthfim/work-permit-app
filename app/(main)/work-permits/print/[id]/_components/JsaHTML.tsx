@@ -128,20 +128,17 @@ export const JsaHTML = ({ permit }: Props) => {
                 {pelaksanaList.length > 0 ? pelaksanaList.join(", ") : "-"}
               </td>
             </tr>
-            <tr>
-              <td className="p-1.5 text-center align-top">7</td>
-              <td className="p-1.5 align-top">Judul JSA</td>
-              <td className="p-1.5 align-top">:</td>
-              <td className="p-1.5 font-semibold">
-                {permit.jsaData?.judulJsa || "-"}
-              </td>
-            </tr>
           </tbody>
         </table>
 
         {/* B. Analisa Keselamatan Kerja */}
         <div className="border-b border-black bg-gray-100 px-2 py-1 font-bold">
           B. ANALISA KESELAMATAN KERJA
+          {permit.jsaData?.judulJsa && (
+            <span className="ml-2 font-semibold">
+              — {permit.jsaData.judulJsa}
+            </span>
+          )}
         </div>
         <table className="w-full table-fixed border-collapse">
           <thead>

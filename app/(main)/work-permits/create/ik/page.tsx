@@ -113,6 +113,9 @@ export default function TabIK() {
     (p) => p._id === formData.tenagaAhliK3,
   );
 
+  // ✅ Baca dari ikDocs (array baru) — letakkan setelah selectedAhliK3
+  const ikDocs: any[] = formData.ikDocs || [];
+
   const handleSubmitFinal = async () => {
     setIsSubmitting(true);
     setErrorMsg("");
@@ -128,17 +131,24 @@ export default function TabIK() {
       noTelpPjTeknik: formData.noTelpPjTeknik,
       tenagaAhliK3: formData.tenagaAhliK3,
       noTelpTenagaAhliK3: formData.noTelpTenagaAhliK3,
+
       workPermitData: {
         klasifikasiPekerjaan: textToArray(formData.wpKlasifikasi),
         prosedurPekerjaan: textToArray(formData.wpProsedur),
         lampiran: textToArray(formData.wpLampiran),
       },
-      jsaData: {
-        pelaksana: formData.jsaPelaksana || [],
-        langkahKerja: textToArray(formData.jsaLangkah),
-        bahayaResiko: textToArray(formData.jsaBahaya),
-        pengendalian: textToArray(formData.jsaPengendalian),
-      },
+
+      // ✅ pelaksana di root
+      pelaksana: formData.jsaPelaksana || [],
+
+      // ✅ jsaData array — map dari jsaDocs
+      jsaData: (formData.jsaDocs || []).map((jsa: any) => ({
+        judulJsa: jsa.judulJsa || "",
+        langkahKerja: textToArray(jsa.langkahKerja),
+        bahayaResiko: textToArray(jsa.bahayaResiko),
+        pengendalian: textToArray(jsa.pengendalian),
+      })),
+
       hirarcData: {
         potensiBahaya: textToArray(formData.hirarcPotensi),
         resiko: textToArray(formData.hirarcResiko),
@@ -158,22 +168,26 @@ export default function TabIK() {
         statusPengendalian: formData.hirarcStatusPengendalian || "",
         penanggungJawab: textToArray(formData.hirarcPenanggungJawab),
       },
-      sopData: {
-        perlengkapanKerja: textToArray(formData.sopPerlengkapan),
-        peralatanUkur: textToArray(formData.sopAlatUkur),
-        peralatanKerja: textToArray(formData.sopAlatKerja),
-        judulUraianKegiatan: textToArray(formData.sopJudulUraianKegiatan),
-        uraianKegiatan: textToArray(formData.sopUraian),
-      },
-      ikData: {
-        perlengkapanKerja: textToArray(formData.ikPerlengkapan),
-        peralatanUkur: textToArray(formData.ikAlatUkur),
-        peralatanKerja: textToArray(formData.ikAlatKerja),
-        judulUraianKegiatan: textToArray(formData.ikJudulUraianKegiatan),
-        uraianKegiatan: textToArray(formData.ikUraian),
-      },
-    };
 
+      // ✅ sopData & ikData array — map dari sopDocs/ikDocs
+      sopData: (formData.sopDocs || []).map((sop: any) => ({
+        judulSop: sop.judulSop || "",
+        perlengkapanKerja: textToArray(sop.perlengkapanKerja),
+        peralatanUkur: textToArray(sop.peralatanUkur),
+        peralatanKerja: textToArray(sop.peralatanKerja),
+        judulUraianKegiatan: textToArray(sop.judulUraianKegiatan),
+        uraianKegiatan: textToArray(sop.uraianKegiatan),
+      })),
+
+      ikData: (formData.ikDocs || []).map((ik: any) => ({
+        judulIk: ik.judulIk || "",
+        perlengkapanKerja: textToArray(ik.perlengkapanKerja),
+        peralatanUkur: textToArray(ik.peralatanUkur),
+        peralatanKerja: textToArray(ik.peralatanKerja),
+        judulUraianKegiatan: textToArray(ik.judulUraianKegiatan),
+        uraianKegiatan: textToArray(ik.uraianKegiatan),
+      })),
+    };
     try {
       const res = await fetch("/api/work-permits", {
         method: "POST",
@@ -251,66 +265,85 @@ export default function TabIK() {
       />
 
       {/* ── PERALATAN IK 3 kolom ── */}
-      <div>
-        <div className="mb-3 flex items-center justify-between">
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[#F5A623]">
-              Instruksi Kerja
-            </p>
-            <h2 className="text-base font-black text-[#0F1F3D]">
-              Perlengkapan & Peralatan
-            </h2>
-          </div>
-          <span className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-            Read Only
-          </span>
+      {/* ── DOKUMEN IK ── */}
+      {ikDocs.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-slate-200 py-8 text-center">
+          <p className="text-sm text-slate-400">
+            Data IK belum tersedia untuk template pekerjaan ini.
+          </p>
         </div>
+      ) : (
+        <div className="space-y-6">
+          {ikDocs.map((ik: any, idx: number) => (
+            <div key={idx} className="space-y-4">
+              {/* Header dokumen IK */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-[#F5A623]">
+                    Instruksi Kerja
+                  </p>
+                  <h2 className="text-base font-black text-[#0F1F3D]">
+                    {ik.judulIk || `IK #${idx + 1}`}
+                  </h2>
+                </div>
+                <span className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  Read Only
+                </span>
+              </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <EquipCard
-            icon={Shield}
-            iconBg="bg-emerald-50"
-            iconColor="text-emerald-600"
-            label="Perlengkapan Kerja (APD)"
-            content={formData.ikPerlengkapan}
-          />
-          <EquipCard
-            icon={Ruler}
-            iconBg="bg-violet-50"
-            iconColor="text-violet-600"
-            label="Peralatan Ukur"
-            content={formData.ikAlatUkur}
-          />
-          <EquipCard
-            icon={Wrench}
-            iconBg="bg-[#F5A623]/15"
-            iconColor="text-amber-600"
-            label="Peralatan Kerja"
-            content={formData.ikAlatKerja}
-          />
-        </div>
-      </div>
+              {/* 3 Kolom Peralatan */}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <EquipCard
+                  icon={Shield}
+                  iconBg="bg-emerald-50"
+                  iconColor="text-emerald-600"
+                  label="Perlengkapan Kerja (APD)"
+                  content={ik.perlengkapanKerja}
+                />
+                <EquipCard
+                  icon={Ruler}
+                  iconBg="bg-violet-50"
+                  iconColor="text-violet-600"
+                  label="Peralatan Ukur"
+                  content={ik.peralatanUkur}
+                />
+                <EquipCard
+                  icon={Wrench}
+                  iconBg="bg-[#F5A623]/15"
+                  iconColor="text-amber-600"
+                  label="Peralatan Kerja"
+                  content={ik.peralatanKerja}
+                />
+              </div>
 
-      {/* ── URAIAN KEGIATAN DETAIL ── */}
-      <SectionCard
-        title="Judul Uraian Kegiatan"
-        icon={FileText}
-        badge="Read Only"
-      >
-        <div className="min-h-[6rem]">
-          <FormattedText text={formData.ikJudulUraianKegiatan} />
-        </div>
-      </SectionCard>
+              {/* Judul Uraian Kegiatan */}
+              <SectionCard
+                title="Judul Uraian Kegiatan"
+                icon={FileText}
+                badge="Read Only"
+              >
+                <div className="min-h-[6rem]">
+                  <FormattedText text={ik.judulUraianKegiatan} />
+                </div>
+              </SectionCard>
 
-      <SectionCard
-        title="Uraian Kegiatan Detail"
-        icon={FileText}
-        badge="Read Only"
-      >
-        <div className="min-h-[12rem]">
-          <FormattedText text={formData.ikUraian} />
+              {/* Uraian Kegiatan */}
+              <SectionCard
+                title="Uraian Kegiatan Detail"
+                icon={FileText}
+                badge="Read Only"
+              >
+                <div className="min-h-[12rem]">
+                  <FormattedText text={ik.uraianKegiatan} />
+                </div>
+              </SectionCard>
+
+              {/* Divider antar dokumen */}
+              {idx < ikDocs.length - 1 && <hr className="border-slate-200" />}
+            </div>
+          ))}
         </div>
-      </SectionCard>
+      )}
 
       {/* ── PERNYATAAN KEPATUHAN ── */}
       <div className="rounded-2xl border border-[#0F1F3D]/15 bg-[#0F1F3D]/[0.03] p-5">

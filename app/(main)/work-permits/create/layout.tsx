@@ -71,13 +71,22 @@ export default function CreateWorkPermitLayout({
     noTelpPjTeknik: "",
     tenagaAhliK3: "",
     noTelpTenagaAhliK3: "",
+
+    // Work Permit
     wpKlasifikasi: "",
     wpProsedur: "",
     wpLampiran: "",
-    jsaPelaksana: [],
-    jsaLangkah: "",
-    jsaBahaya: "",
-    jsaPengendalian: "",
+
+    // JSA — pelaksana di root, jsaDocs adalah array
+    jsaPelaksana: [] as string[],
+    jsaDocs: [] as {
+      judulJsa: string;
+      langkahKerja: string;
+      bahayaResiko: string;
+      pengendalian: string;
+    }[],
+
+    // HIRARC — tetap sama
     hirarcPotensi: "",
     hirarcResiko: "",
     hirarcPengendalian: "",
@@ -89,16 +98,26 @@ export default function CreateWorkPermitLayout({
     hirarcKemungkinanSetelah: "",
     hirarcTingkatSetelah: "",
     hirarcStatusPengendalian: "",
-    sopPerlengkapan: "",
-    sopAlatUkur: "",
-    sopAlatKerja: "",
-    sopJudulUraianKegiatan: "",
-    sopUraian: "",
-    ikPerlengkapan: "",
-    ikAlatUkur: "",
-    ikAlatKerja: "",
-    ikJudulUraianKegiatan: "",
-    ikUraian: "",
+
+    // SOP — array
+    sopDocs: [] as {
+      judulSop: string;
+      perlengkapanKerja: string;
+      peralatanUkur: string;
+      peralatanKerja: string;
+      judulUraianKegiatan: string;
+      uraianKegiatan: string;
+    }[],
+
+    // IK — array
+    ikDocs: [] as {
+      judulIk: string;
+      perlengkapanKerja: string;
+      peralatanUkur: string;
+      peralatanKerja: string;
+      judulUraianKegiatan: string;
+      uraianKegiatan: string;
+    }[],
   });
 
   const isWpValid = () =>

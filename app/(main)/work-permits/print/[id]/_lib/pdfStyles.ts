@@ -72,6 +72,7 @@ export const styles = StyleSheet.create({
     textAlign: "center",
     borderRight: "1px solid black",
   },
+  jsaTdJudulJsa: { width: "35%", padding: 4, borderRight: "1px solid black" },
   jsaTdLangkah: { width: "35%", padding: 4, borderRight: "1px solid black" },
   jsaTdPotensi: { width: "30%", padding: 4, borderRight: "1px solid black" },
   jsaTdKendali: { width: "30%", padding: 4 },

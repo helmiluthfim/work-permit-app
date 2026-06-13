@@ -92,6 +92,7 @@ export async function POST(req: NextRequest) {
       hirarcData,
       sopData,
       ikData,
+      pelaksana,
     } = body;
 
     if (
@@ -105,9 +106,8 @@ export async function POST(req: NextRequest) {
       !noTelpPjTeknik ||
       !tenagaAhliK3 ||
       !noTelpTenagaAhliK3 ||
-      !jsaData ||
-      !jsaData.pelaksana ||
-      jsaData.pelaksana.length === 0
+      !pelaksana ||
+      pelaksana.length === 0
     ) {
       return NextResponse.json(
         {
@@ -178,6 +178,7 @@ export async function POST(req: NextRequest) {
       status: "submitted",
 
       workPermitData,
+      pelaksana,
       jsaData,
       hirarcData: sanitizedHirarcData, // Gunakan data yang sudah disanitasi
       sopData,

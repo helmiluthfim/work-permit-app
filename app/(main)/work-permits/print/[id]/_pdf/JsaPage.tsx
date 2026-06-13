@@ -108,15 +108,11 @@ export const JsaPage = ({ permit }: { permit: Permit }) => {
             )}
           </View>
         </View>
-        <View style={styles.row}>
-          <Text style={styles.col1}>7</Text>
-          <Text style={styles.col2}>Judul JSA</Text>
-          <Text style={styles.col3}>:</Text>
-          <Text style={styles.col4}>{permit.jsaData?.judulJsa || "-"}</Text>
-        </View>
-
         {/* B. Analisa Keselamatan Kerja */}
-        <Text style={styles.sectionTitle}>B. ANALISA KESELAMATAN KERJA</Text>
+        <Text style={styles.sectionTitle}>
+          B. ANALISA KESELAMATAN KERJA
+          {permit.jsaData?.judulJsa ? ` — ${permit.jsaData.judulJsa}` : ""}
+        </Text>
         <View style={[styles.row, { backgroundColor: "#f3f4f6" }]}>
           <Text style={styles.jsaThNo}>NO</Text>
           <Text style={styles.jsaThLangkah}>LANGKAH PEKERJAAN</Text>
@@ -128,6 +124,9 @@ export const JsaPage = ({ permit }: { permit: Permit }) => {
           langkahKerjaList.map((langkah: string, idx: number) => (
             <View key={idx} style={styles.row}>
               <Text style={styles.jsaTdNo}>{idx + 1}</Text>
+              <Text style={styles.jsaTdJudulJsa}>
+                {permit.jsaData?.judulJsa || "-"}
+              </Text>
               <Text style={styles.jsaTdLangkah}>{langkah || "-"}</Text>
               <Text style={styles.jsaTdPotensi}>
                 {bahayaResikoList[idx] || "-"}
