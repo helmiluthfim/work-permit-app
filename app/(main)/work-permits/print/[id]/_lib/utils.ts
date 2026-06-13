@@ -13,6 +13,14 @@ export const formatTanggal = (dateStr: string): string => {
   });
 };
 
-export const getPelaksanaList = (permit: Permit): string[] =>
-  permit.jsaData?.pelaksana?.map((p) => (typeof p === "object" ? p.nama : p)) ??
-  [];
+export const getPelaksanaList = (permit: Permit): string[] => {
+  const rootPelaksana = permit.pelaksana ?? [];
+  if (Array.isArray(rootPelaksana) && rootPelaksana.length > 0) {
+    return rootPelaksana.map((p) => (typeof p === "object" ? p.nama : p));
+  }
+
+  const legacyPelaksana = permit.jsaData?.[0]?.pelaksana ?? [];
+  return Array.isArray(legacyPelaksana)
+    ? legacyPelaksana.map((p) => (typeof p === "object" ? p.nama : p))
+    : [];
+};

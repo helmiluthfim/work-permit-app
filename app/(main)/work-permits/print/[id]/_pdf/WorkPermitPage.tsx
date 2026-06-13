@@ -29,26 +29,23 @@ const WorkPermitSignatures = ({ permit }: { permit: Permit }) => (
   <View style={styles.signatureSection}>
     <View style={styles.signatureBox}>
       <Text style={styles.signatureTitle}>
-        Diajukan Oleh,{"\n"}Pengawas Pekerjaan
+        Diajukan Oleh,{"\n"}Penanggung Jawab Teknik
       </Text>
       <Text style={styles.signatureName}>{permit.pjTeknik?.nama}</Text>
       <Text style={styles.signatureNote}>Telah disetujui secara digital</Text>
     </View>
     <View style={styles.signatureBox}>
       <Text style={styles.signatureTitle}>
-        Diperiksa Oleh,{"\n"}Pengawas K3
+        Diperiksa Oleh,{"\n"}Tenaga Ahli K3
       </Text>
       <Text style={styles.signatureName}>{permit.tenagaAhliK3?.nama}</Text>
       <Text style={styles.signatureNote}>Telah disetujui secara digital</Text>
     </View>
     <View style={styles.signatureBox}>
-      <Text style={styles.signatureTitle}>
-        Disahkan Oleh,{"\n"}Manajemen / Direktur
-      </Text>
+      <Text style={styles.signatureTitle}>Disahkan Oleh,{"\n"}Direktur</Text>
       {permit.status === "approved_director" ? (
         <>
           <Text style={styles.signatureName}>BILAL YURINATA</Text>
-          <Text style={styles.signatureRole}>Direktur Utama</Text>
           <Text style={styles.signatureNote}>
             Telah disetujui secara digital
           </Text>

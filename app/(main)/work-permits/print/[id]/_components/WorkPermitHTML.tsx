@@ -31,7 +31,7 @@ const WorkPermitSignaturesHTML = ({ permit }: { permit: Permit }) => (
         <p className="mb-16 font-bold">
           Diajukan Oleh,
           <br />
-          Pengawas Pekerjaan
+          Penanggung Jawab Teknik
         </p>
         <p className="font-bold uppercase underline">{permit.pjTeknik?.nama}</p>
         <p className="text-[10px] italic text-slate-500">
@@ -42,7 +42,7 @@ const WorkPermitSignaturesHTML = ({ permit }: { permit: Permit }) => (
         <p className="mb-16 font-bold">
           Diperiksa Oleh,
           <br />
-          Pengawas K3
+          Tenaga Ahli K3
         </p>
         <p className="font-bold uppercase underline">
           {permit.tenagaAhliK3?.nama}
@@ -55,12 +55,11 @@ const WorkPermitSignaturesHTML = ({ permit }: { permit: Permit }) => (
         <p className="mb-16 font-bold">
           Disahkan Oleh,
           <br />
-          Manajemen / Direktur
+          Direktur
         </p>
         {permit.status === "approved_director" ? (
           <>
             <p className="font-bold uppercase underline">BILAL YURINATA</p>
-            <p className="font-semibold text-[11px] mt-0.5">Direktur Utama</p>
             <p className="text-[10px] italic text-slate-500 mt-1">
               Telah disetujui secara digital
             </p>

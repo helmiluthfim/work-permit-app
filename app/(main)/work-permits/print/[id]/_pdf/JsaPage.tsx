@@ -12,26 +12,23 @@ const JsaSignatures = ({ permit }: { permit: Permit }) => (
   <View style={styles.signatureSection}>
     <View style={styles.signatureBox}>
       <Text style={styles.signatureTitle}>
-        Disusun Oleh,{"\n"}Pengawas Pekerjaan
+        Disusun Oleh,{"\n"}Penanggung Jawab Teknik
       </Text>
       <Text style={styles.signatureName}>{permit.pjTeknik?.nama}</Text>
       <Text style={styles.signatureNote}>Telah disetujui secara digital</Text>
     </View>
     <View style={styles.signatureBox}>
       <Text style={styles.signatureTitle}>
-        Diperiksa Oleh,{"\n"}Pengawas K3
+        Diperiksa Oleh,{"\n"}Tenaga Ahli K3
       </Text>
       <Text style={styles.signatureName}>{permit.tenagaAhliK3?.nama}</Text>
       <Text style={styles.signatureNote}>Telah disetujui secara digital</Text>
     </View>
     <View style={styles.signatureBox}>
-      <Text style={styles.signatureTitle}>
-        Disetujui Oleh,{"\n"}Manajemen / Direktur
-      </Text>
+      <Text style={styles.signatureTitle}>Disetujui Oleh,{"\n"}Direktur</Text>
       {permit.status === "approved_director" ? (
         <>
           <Text style={styles.signatureName}>BILAL YURINATA</Text>
-          <Text style={styles.signatureRole}>Direktur Utama</Text>
           <Text style={styles.signatureNote}>
             Telah disetujui secara digital
           </Text>
@@ -47,10 +44,12 @@ const JsaSignatures = ({ permit }: { permit: Permit }) => (
 
 // ── Halaman PDF: JSA ──
 export const JsaPage = ({ permit }: { permit: Permit }) => {
-  const langkahKerjaList = permit.jsaData?.langkahKerja ?? [];
-  const bahayaResikoList = permit.jsaData?.bahayaResiko ?? [];
-  const pengendalianList = permit.jsaData?.pengendalian ?? [];
   const pelaksanaList = getPelaksanaList(permit);
+  const jsaDocs = permit.jsaData
+    ? Array.isArray(permit.jsaData)
+      ? permit.jsaData
+      : [permit.jsaData]
+    : [];
 
   return (
     <Page size="A4" style={styles.page}>
@@ -108,11 +107,11 @@ export const JsaPage = ({ permit }: { permit: Permit }) => {
             )}
           </View>
         </View>
+
         {/* B. Analisa Keselamatan Kerja */}
-        <Text style={styles.sectionTitle}>
-          B. ANALISA KESELAMATAN KERJA
-          {permit.jsaData?.judulJsa ? ` — ${permit.jsaData.judulJsa}` : ""}
-        </Text>
+        <Text style={styles.sectionTitle}>B. ANALISA KESELAMATAN KERJA</Text>
+
+        {/* Header tabel */}
         <View style={[styles.row, { backgroundColor: "#f3f4f6" }]}>
           <Text style={styles.jsaThNo}>NO</Text>
           <Text style={styles.jsaThLangkah}>LANGKAH PEKERJAAN</Text>
@@ -120,20 +119,41 @@ export const JsaPage = ({ permit }: { permit: Permit }) => {
           <Text style={styles.jsaThKendali}>TINDAKAN PENGENDALIAN</Text>
         </View>
 
-        {langkahKerjaList.length > 0 ? (
-          langkahKerjaList.map((langkah: string, idx: number) => (
-            <View key={idx} style={styles.row}>
-              <Text style={styles.jsaTdNo}>{idx + 1}</Text>
-              <Text style={styles.jsaTdJudulJsa}>
-                {permit.jsaData?.judulJsa || "-"}
-              </Text>
-              <Text style={styles.jsaTdLangkah}>{langkah || "-"}</Text>
-              <Text style={styles.jsaTdPotensi}>
-                {bahayaResikoList[idx] || "-"}
-              </Text>
-              <Text style={styles.jsaTdKendali}>
-                {pengendalianList[idx] || "-"}
-              </Text>
+        {jsaDocs.length > 0 ? (
+          jsaDocs.map((jsa: any, jsaIdx: number) => (
+            <View key={jsaIdx}>
+              {/* ✅ Baris judul JSA — bernomor, bold */}
+              <View style={[styles.row, { backgroundColor: "#f9fafb" }]}>
+                <Text style={[styles.jsaTdNo, { fontWeight: "bold" }]}>
+                  {jsaIdx + 1}
+                </Text>
+                <Text
+                  style={[
+                    styles.jsaTdLangkah,
+                    {
+                      fontWeight: "bold",
+                      width: "95%", // span sisa 3 kolom
+                      textTransform: "uppercase",
+                    },
+                  ]}
+                >
+                  {jsa.judulJsa || `JSA #${jsaIdx + 1}`}
+                </Text>
+              </View>
+
+              {/* ✅ Baris langkah kerja — tanpa nomor */}
+              {(jsa.langkahKerja ?? []).map((langkah: string, idx: number) => (
+                <View key={idx} style={styles.row}>
+                  <Text style={styles.jsaTdNo} />
+                  <Text style={styles.jsaTdLangkah}>{langkah || "-"}</Text>
+                  <Text style={styles.jsaTdPotensi}>
+                    {jsa.bahayaResiko?.[idx] || "-"}
+                  </Text>
+                  <Text style={styles.jsaTdKendali}>
+                    {jsa.pengendalian?.[idx] || "-"}
+                  </Text>
+                </View>
+              ))}
             </View>
           ))
         ) : (

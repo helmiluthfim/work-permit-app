@@ -41,5 +41,6 @@ export interface Permit {
   pjTeknik?: Personil;
   tenagaAhliK3?: Personil;
   workPermitData?: WorkPermitData;
-  jsaData?: JsaData;
+  pelaksana?: (Personil | string)[];
+  jsaData?: JsaData[];
 }

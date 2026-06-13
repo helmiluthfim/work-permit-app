@@ -2,6 +2,7 @@
 // KOMPONEN HTML: HALAMAN 2 - JSA
 // ==========================================
 
+import { Fragment } from "react";
 import { Permit } from "../_lib/types";
 import { formatTanggal, getPelaksanaList } from "../_lib/utils";
 
@@ -16,7 +17,7 @@ const JsaSignaturesHTML = ({ permit }: { permit: Permit }) => (
         <p className="mb-16 font-bold">
           Disusun Oleh,
           <br />
-          Pengawas Pekerjaan
+          Penanggung Jawab Teknik
         </p>
         <p className="font-bold uppercase underline">{permit.pjTeknik?.nama}</p>
         <p className="text-[10px] italic text-slate-500">
@@ -27,7 +28,7 @@ const JsaSignaturesHTML = ({ permit }: { permit: Permit }) => (
         <p className="mb-16 font-bold">
           Diperiksa Oleh,
           <br />
-          Pengawas K3
+          Tenaga Ahli K3
         </p>
         <p className="font-bold uppercase underline">
           {permit.tenagaAhliK3?.nama}
@@ -40,12 +41,11 @@ const JsaSignaturesHTML = ({ permit }: { permit: Permit }) => (
         <p className="mb-16 font-bold">
           Disetujui Oleh,
           <br />
-          Manajemen / Direktur
+          Direktur
         </p>
         {permit.status === "approved_director" ? (
           <>
             <p className="font-bold uppercase underline">BILAL YURINATA</p>
-            <p className="font-semibold text-[11px] mt-0.5">Direktur Utama</p>
             <p className="text-[10px] italic text-slate-500 mt-1">
               Telah disetujui secara digital
             </p>
@@ -59,10 +59,12 @@ const JsaSignaturesHTML = ({ permit }: { permit: Permit }) => (
 );
 
 export const JsaHTML = ({ permit }: Props) => {
-  const langkahKerjaList = permit.jsaData?.langkahKerja ?? [];
-  const bahayaResikoList = permit.jsaData?.bahayaResiko ?? [];
-  const pengendalianList = permit.jsaData?.pengendalian ?? [];
   const pelaksanaList = getPelaksanaList(permit);
+  const jsaDocs = permit.jsaData
+    ? Array.isArray(permit.jsaData)
+      ? permit.jsaData
+      : [permit.jsaData]
+    : [];
 
   return (
     <div className="bg-white p-10 shadow-lg break-before-page print:m-0 print:max-w-none print:p-0 print:shadow-none">
@@ -134,11 +136,6 @@ export const JsaHTML = ({ permit }: Props) => {
         {/* B. Analisa Keselamatan Kerja */}
         <div className="border-b border-black bg-gray-100 px-2 py-1 font-bold">
           B. ANALISA KESELAMATAN KERJA
-          {permit.jsaData?.judulJsa && (
-            <span className="ml-2 font-semibold">
-              — {permit.jsaData.judulJsa}
-            </span>
-          )}
         </div>
         <table className="w-full table-fixed border-collapse">
           <thead>
@@ -154,22 +151,40 @@ export const JsaHTML = ({ permit }: Props) => {
             </tr>
           </thead>
           <tbody>
-            {langkahKerjaList.length > 0 ? (
-              langkahKerjaList.map((langkah: string, idx: number) => (
-                <tr key={idx} className="border-b border-black last:border-b-0">
-                  <td className="border-r border-black p-1.5 text-center align-top">
-                    {idx + 1}
-                  </td>
-                  <td className="border-r border-black p-1.5 align-top whitespace-pre-line">
-                    {langkah || "-"}
-                  </td>
-                  <td className="border-r border-black p-1.5 align-top whitespace-pre-line">
-                    {bahayaResikoList[idx] || "-"}
-                  </td>
-                  <td className="p-1.5 align-top whitespace-pre-line">
-                    {pengendalianList[idx] || "-"}
-                  </td>
-                </tr>
+            {jsaDocs.length > 0 ? (
+              jsaDocs.map((jsa: any, jsaIdx: number) => (
+                <Fragment key={`section-${jsaIdx}`}>
+                  {/* ✅ Baris judul JSA — bernomor, bold, colspan */}
+                  <tr className="border-b border-black bg-gray-50">
+                    <td className="border-r border-black p-1.5 text-center align-top font-bold">
+                      {jsaIdx + 1}
+                    </td>
+                    <td colSpan={3} className="p-1.5 font-bold uppercase">
+                      {jsa.judulJsa || `JSA #${jsaIdx + 1}`}
+                    </td>
+                  </tr>
+
+                  {/* ✅ Baris langkah kerja — tanpa nomor */}
+                  {(jsa.langkahKerja ?? []).map(
+                    (langkah: string, idx: number) => (
+                      <tr
+                        key={`row-${jsaIdx}-${idx}`}
+                        className="border-b border-black last:border-b-0"
+                      >
+                        <td className="border-r border-black p-1.5 text-center align-top" />
+                        <td className="border-r border-black p-1.5 align-top whitespace-pre-line">
+                          {langkah || "-"}
+                        </td>
+                        <td className="border-r border-black p-1.5 align-top whitespace-pre-line">
+                          {jsa.bahayaResiko?.[idx] || "-"}
+                        </td>
+                        <td className="p-1.5 align-top whitespace-pre-line">
+                          {jsa.pengendalian?.[idx] || "-"}
+                        </td>
+                      </tr>
+                    ),
+                  )}
+                </Fragment>
               ))
             ) : (
               <tr>
