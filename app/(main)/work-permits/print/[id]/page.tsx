@@ -10,6 +10,9 @@ import { Permit } from "./_lib/types";
 import { ActionButtons } from "./_components/ActionButtons";
 import { WorkPermitHTML } from "./_components/WorkPermitHTML";
 import { JsaHTML } from "./_components/JsaHTML";
+import { HirarcHTML } from "./_components/HirarcHTML";
+import { SopHTML } from "./_components/SopHTML";
+import { IkHTML } from "./_components/IkHTML";
 
 export default function WorkPermitPrintPage() {
   const params = useParams();
@@ -21,12 +24,12 @@ export default function WorkPermitPrintPage() {
 
   useEffect(() => {
     setIsClient(true);
-    if (!id) return; // guard: tunggu sampai id tersedia
+    if (!id) return;
 
     const fetchDetail = async () => {
       try {
         const res = await fetch(`/api/work-permits/${id}`, {
-          credentials: "include", // kirim session cookie Next-Auth
+          credentials: "include",
         });
 
         if (!res.ok) {
@@ -70,15 +73,55 @@ export default function WorkPermitPrintPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-200 py-8 print:bg-white print:py-0">
-      {/* Tombol Aksi (hanya tampil di layar) */}
-      {isClient && <ActionButtons permit={permit} />}
+    <>
+      {/*
+        ── CSS Print Global ──────────────────────────────────────────
+        - Halaman default: portrait
+        - Khusus .page-landscape: landscape (untuk HIRARC)
+        - Sembunyikan tombol aksi saat print
+      */}
+      <style>{`
+        @media print {
+          @page { size: A4 portrait; margin: 10mm; }
+          .page-landscape { page: landscape-page; }
+          @page landscape-page { size: A4 landscape; margin: 8mm; }
+          .print\\:hidden { display: none !important; }
+          body { background: white !important; }
+        }
+      `}</style>
 
-      {/* Dokumen HTML */}
-      <div className="mx-auto max-w-4xl space-y-12">
-        <WorkPermitHTML permit={permit} />
-        <JsaHTML permit={permit} />
+      <div className="min-h-screen bg-slate-200 py-8 print:bg-white print:py-0">
+        {/* Tombol Aksi — hanya tampil di layar */}
+        {isClient && <ActionButtons permit={permit} />}
+
+        {/* ── Dokumen HTML ── */}
+        <div className="space-y-12 print:space-y-0">
+          {/* Halaman 1: Work Permit — Portrait */}
+          <div className="mx-auto max-w-4xl">
+            <WorkPermitHTML permit={permit} />
+          </div>
+
+          {/* Halaman 2: JSA — Portrait */}
+          <div className="mx-auto max-w-4xl">
+            <JsaHTML permit={permit} />
+          </div>
+
+          {/* Halaman 3: HIRARC — Landscape */}
+          <div className="page-landscape mx-auto max-w-[270mm]">
+            <HirarcHTML permit={permit} />
+          </div>
+
+          {/* Halaman 4: SOP — Portrait */}
+          <div className="mx-auto max-w-4xl">
+            <SopHTML permit={permit} />
+          </div>
+
+          {/* Halaman 5: IK — Portrait */}
+          <div className="mx-auto max-w-4xl">
+            <IkHTML permit={permit} />
+          </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

@@ -4,10 +4,11 @@
 
 "use client";
 
-import { Printer, ArrowLeft, Download } from "lucide-react";
+import { ArrowLeft, Download, Printer } from "lucide-react";
 import { PDFDownloadLink } from "@react-pdf/renderer";
-import { WorkPermitAndJsaPDF } from "../_pdf/WorkPermitAndJsaPDF";
+
 import { Permit } from "../_lib/types";
+import { WorkPermitPDF } from "../_pdf/WorkPermitPDF";
 
 interface ActionButtonsProps {
   permit: Permit;
@@ -23,16 +24,10 @@ export const ActionButtons = ({ permit }: ActionButtonsProps) => (
     </button>
 
     <div className="flex gap-3">
-      <button
-        onClick={() => window.print()}
-        className="flex items-center gap-2 rounded-lg bg-slate-600 px-5 py-2 text-sm font-bold text-white shadow-sm hover:bg-slate-700"
-      >
-        <Printer size={16} /> Cetak (Printer)
-      </button>
-
+      {/* Tombol download PDF */}
       <PDFDownloadLink
-        document={<WorkPermitAndJsaPDF permit={permit} />}
-        fileName={`WP_JSA_${permit.nomorWP || "Doc"}.pdf`}
+        document={<WorkPermitPDF permit={permit} />}
+        fileName={`WP_${permit.nomorWP || "Doc"}.pdf`}
         className="flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2 text-sm font-bold text-white shadow-sm hover:bg-blue-700"
       >
         {({ loading: pdfLoading }) => (

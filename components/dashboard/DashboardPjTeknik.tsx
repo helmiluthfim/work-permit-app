@@ -245,7 +245,9 @@ export default function DashboardPjTeknik() {
                   return (
                     <li key={wp._id}>
                       <button
-                        onClick={() => router.push(`/work-permits/${wp._id}`)}
+                        onClick={() =>
+                          router.push(`/work-permits/review/${wp._id}`)
+                        }
                         className="flex w-full items-center gap-4 px-6 py-4 text-left transition hover:bg-slate-50"
                       >
                         <span

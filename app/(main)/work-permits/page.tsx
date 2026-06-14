@@ -67,6 +67,7 @@ export default function WorkPermitHistoryPage() {
   }, []);
 
   const filtered = permits.filter((p) => {
+    // Filter status (tetap sama)
     if (
       filterStatus === "proses" &&
       !["submitted", "approved_k3"].includes(p.status)
@@ -77,11 +78,37 @@ export default function WorkPermitHistoryPage() {
     if (filterStatus === "ditolak" && !["rejected", "draft"].includes(p.status))
       return false;
 
+    // Search query
     const searchString = search.toLowerCase();
     const nomor = p.nomorWP?.toLowerCase() || "";
     const pekerjaan = p.pekerjaan?.namaPekerjaan?.toLowerCase() || "";
 
-    return nomor.includes(searchString) || pekerjaan.includes(searchString);
+    // Format tanggal ke string persis seperti yang tampil di tabel agar bisa dicari
+    const tglDibuat = new Date(p.createdAt)
+      .toLocaleDateString("id-ID")
+      .toLowerCase();
+    const tglMulai = new Date(p.tanggalMulai)
+      .toLocaleDateString("id-ID", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })
+      .toLowerCase();
+    const tglSelesai = new Date(p.tanggalSelesai)
+      .toLocaleDateString("id-ID", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })
+      .toLowerCase();
+
+    return (
+      nomor.includes(searchString) ||
+      pekerjaan.includes(searchString) ||
+      tglDibuat.includes(searchString) ||
+      tglMulai.includes(searchString) ||
+      tglSelesai.includes(searchString)
+    );
   });
 
   const renderStatusBadge = (status: string) => {
@@ -198,7 +225,7 @@ export default function WorkPermitHistoryPage() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Cari no. dokumen, pekerjaan..."
+            placeholder="Cari no. dokumen, pekerjaan, atau tanggal..."
             className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-10 text-sm text-[#0F1F3D] outline-none transition focus:border-[#0F1F3D] focus:ring-2 focus:ring-[#0F1F3D]/10"
           />
           {search && (
@@ -214,9 +241,11 @@ export default function WorkPermitHistoryPage() {
 
       {/* ── TABLE ── */}
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="overflow-x-auto">
+        <div
+          className={`overflow-x-auto ${filtered.length > 10 ? "max-h-[700px] overflow-y-auto" : ""}`}
+        >
           <table className="w-full min-w-[900px] border-collapse text-left">
-            <thead className="bg-[#0F1F3D]/[0.03] border-b border-slate-100">
+            <thead className="sticky top-0 z-10 border-b border-slate-100 bg-slate-50">
               <tr>
                 {[
                   "No. Dokumen",
