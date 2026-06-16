@@ -1,13 +1,29 @@
 import { NextAuthOptions } from "next-auth";
 import NextAuth from "next-auth/next";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { connectDB } from "@/lib/mongodb"; // Sesuaikan dengan folder letak connectDB Anda
-import User from "@/models/User"; // Sesuaikan dengan folder letak model User Anda
-// import bcrypt from "bcryptjs"; // Buka komentar ini jika Anda menggunakan enkripsi password (sangat direkomendasikan)
+import { connectDB } from "@/lib/mongodb";
+import User from "@/models/User";
+// import bcrypt from "bcryptjs";
 
 export const authOption: NextAuthOptions = {
   session: {
     strategy: "jwt",
+    // Tanpa maxAge → cookie session tidak punya expiry
+    // sehingga browser akan otomatis menghapusnya saat ditutup
+    maxAge: 60 * 60 * 8, // 8 jam maksimal jika browser tetap terbuka
+  },
+  cookies: {
+    sessionToken: {
+      name: "next-auth.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+        // ⬇ Tidak set "expires" / "maxAge" di sini
+        // sehingga jadi session cookie (hilang saat browser ditutup)
+      },
+    },
   },
   secret: process.env.NEXTAUTH_SECRET,
   providers: [
@@ -26,38 +42,31 @@ export const authOption: NextAuthOptions = {
         const { username, password } = credentials;
 
         try {
-          // 1. Koneksikan ke Database MongoDB
           await connectDB();
 
-          // 2. Cari user di database berdasarkan username
-          // Menggunakan Regex "i" agar pencarian bersifat Case-Insensitive (tidak sensitif huruf besar/kecil)
           const dbUser = await User.findOne({
             username: { $regex: new RegExp(`^${username}$`, "i") },
           });
 
-          // Jika user tidak ditemukan
           if (!dbUser) {
             return null;
           }
 
-          // 3. Validasi Password
-          // OPSI A: Jika password di database disimpan menggunakan plain-text (teks biasa):
+          // OPSI A: plain-text password
           const isPasswordMatch = password === dbUser.password;
 
-          // OPSI B: Jika password di database di-hash menggunakan bcrypt (Rekomendasi Production):
+          // OPSI B: bcrypt (rekomendasi production)
           // const isPasswordMatch = await bcrypt.compare(password, dbUser.password);
 
           if (!isPasswordMatch) {
             return null;
           }
 
-          // 4. Kembalikan data user yang berhasil ditemukan ke NextAuth
-          // Penting: Mongoose id (_id) harus diubah menjadi string .toString()
           return {
             id: dbUser._id.toString(),
             name: dbUser.username,
             username: dbUser.username,
-            role: dbUser.role, // Akan otomatis berisi "pj teknik", "tenaga kerja k3", atau "direktur" sesuai DB
+            role: dbUser.role,
           };
         } catch (error) {
           console.error("Terjadi kesalahan saat proses login:", error);
@@ -73,7 +82,6 @@ export const authOption: NextAuthOptions = {
         token.username = user.username;
         token.role = user.role;
       }
-
       return token;
     },
 
@@ -83,7 +91,6 @@ export const authOption: NextAuthOptions = {
         session.user.username = token.username;
         session.user.role = token.role;
       }
-
       return session;
     },
   },

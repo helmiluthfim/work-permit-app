@@ -1,6 +1,7 @@
 // app/dashboard/layout.tsx  (atau layout wrapper di root app)
 // Letakkan ini sebagai layout yang membungkus semua halaman dengan sidebar + navbar
 
+import NotificationToast from "../NotificationToast";
 import Navbar from "./Navbar";
 import AppSidebar from "./Sidebar";
 
@@ -17,7 +18,10 @@ export default function DashboardLayout({
       {/* Kolom kanan: navbar + konten yang bisa scroll */}
       <div className="flex flex-1 flex-col overflow-hidden">
         <Navbar />
-        <main className="flex-1 overflow-y-auto">{children}</main>
+        <main className="flex-1 overflow-y-auto">
+          {children}
+          <NotificationToast />
+        </main>
       </div>
     </div>
   );
