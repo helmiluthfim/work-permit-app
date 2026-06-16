@@ -245,7 +245,6 @@ export default function TabJSA() {
         icon={CheckSquare}
         badge="Read Only"
       >
-        // Tampilkan semua dokumen JSA dari jsaDocs
         {!formData.jsaDocs || formData.jsaDocs.length === 0 ? (
           <div className="rounded-xl border border-dashed border-slate-200 py-8 text-center">
             <p className="text-sm text-slate-400">

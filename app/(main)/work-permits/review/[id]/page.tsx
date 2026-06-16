@@ -189,15 +189,17 @@ export default function WorkPermitDetailPage() {
         noTelpPjTeknik: permit.noTelpPjTeknik,
         tenagaAhliK3: permit.tenagaAhliK3._id,
         noTelpTenagaAhliK3: permit.noTelpTenagaAhliK3,
+        pelaksana: currentPelaksana, // ✅ pindah ke root
         workPermitData: permit.workPermitData,
-        jsaData: {
-          ...permit.jsaData,
-          pelaksana: currentPelaksana.map((p: any) => p._id || p),
-        },
+        jsaData: permit.jsaData, // ✅ jsaData langsung tanpa modifikasi
         hirarcData: permit.hirarcData,
         sopData: permit.sopData,
         ikData: permit.ikData,
       };
+
+      console.log("=== RESUBMIT PAYLOAD ===");
+      console.log("pelaksana:", currentPelaksana);
+      console.log("payload:", JSON.stringify(payload, null, 2));
 
       const res = await fetch("/api/work-permits", {
         method: "POST",

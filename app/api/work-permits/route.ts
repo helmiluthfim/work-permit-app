@@ -4,19 +4,16 @@ import { authOption } from "@/app/api/auth/[...nextauth]/route";
 import { connectDB } from "@/lib/mongodb";
 import JobTemplate from "@/models/JobTemplate";
 import WorkPermit from "@/models/WorkPermit";
-
-// 👇 TAMBAHAN WAJIB: Import model Personnel agar Mongoose mengenali skemanya
-// saat melakukan .populate() di metode GET.
 import Personnel from "@/models/Personnel";
+import { createNotification } from "@/lib/createNotification"; // ← tambah ini
 
 // ========================================================
-// GET: MENAMPILKAN DAFTAR WORK PERMIT
+// GET: MENAMPILKAN DAFTAR WORK PERMIT (tidak ada perubahan)
 // ========================================================
 export async function GET(req: NextRequest) {
   try {
     await connectDB();
 
-    // Validasi Sesi Login
     const session = await getServerSession(authOption);
     if (!session) {
       return NextResponse.json(
@@ -25,27 +22,21 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Tangkap parameter status dari URL (jika ada)
     const { searchParams } = new URL(req.url);
     const statusFilter = searchParams.get("status");
 
-    // Siapkan object filter
     const filter: any = {};
     if (statusFilter) {
       filter.status = statusFilter;
     }
 
-    // Ambil data Work Permit beserta filternya
     const workPermits = await WorkPermit.find(filter)
       .populate("pekerjaan", "kodePekerjaan namaPekerjaan")
       .populate("pjTeknik", "nama")
       .populate("tenagaAhliK3", "nama")
       .sort({ createdAt: -1 });
 
-    return NextResponse.json({
-      success: true,
-      data: workPermits,
-    });
+    return NextResponse.json({ success: true, data: workPermits });
   } catch (error: any) {
     console.error("Error pada GET /api/work-permits:", error);
     return NextResponse.json(
@@ -74,7 +65,6 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-
     const {
       pekerjaan,
       lokasi,
@@ -86,7 +76,6 @@ export async function POST(req: NextRequest) {
       noTelpPjTeknik,
       tenagaAhliK3,
       noTelpTenagaAhliK3,
-
       workPermitData,
       jsaData,
       hirarcData,
@@ -159,9 +148,14 @@ export async function POST(req: NextRequest) {
           tingkatResikoSetelahPengendalian: toStringArray(
             hirarcData.tingkatResikoSetelahPengendalian,
           ),
-          statusPengendalian: firstString(hirarcData.statusPengendalian), // ← String, bukan array
+          statusPengendalian: firstString(hirarcData.statusPengendalian),
         }
       : {};
+
+    const userId = (session.user as any).id;
+    console.log("=== DEBUG ===");
+    console.log("userId:", userId);
+    console.log("session.user:", JSON.stringify(session.user));
 
     const workPermit = await WorkPermit.create({
       nomorWP,
@@ -176,13 +170,26 @@ export async function POST(req: NextRequest) {
       tenagaAhliK3,
       noTelpTenagaAhliK3,
       status: "submitted",
-
+      createdBy: userId,
       workPermitData,
       pelaksana,
       jsaData,
-      hirarcData: sanitizedHirarcData, // Gunakan data yang sudah disanitasi
+      hirarcData: sanitizedHirarcData,
       sopData,
       ikData,
+    });
+
+    console.log("=== WORK PERMIT CREATED ===");
+    console.log("createdBy:", workPermit.createdBy);
+    console.log("nomorWP:", workPermit.nomorWP);
+
+    // ── Kirim notifikasi ke K3 setelah WP berhasil dibuat ──
+    await createNotification({
+      recipientRole: "TENAGA_AHLI_K3",
+      title: "Work Permit Baru Diajukan",
+      message: `Work Permit ${nomorWP} telah diajukan dan menunggu review Anda`,
+      type: "SUBMIT",
+      documentId: workPermit._id.toString(),
     });
 
     return NextResponse.json(

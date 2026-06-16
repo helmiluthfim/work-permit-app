@@ -2,7 +2,8 @@
 
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Bell, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
+import NotificationDropdown from "@/components/NotificationDropdown"; // ← tambah ini
 
 /* ── Peta path → label halaman ── */
 const pageTitles: Record<string, { title: string; parent?: string }> = {
@@ -58,15 +59,8 @@ export default function Navbar() {
 
       {/* ── Kanan: notif + user chip ── */}
       <div className="flex items-center gap-3">
-        {/* Notifikasi bell */}
-        <button
-          aria-label="Notifikasi"
-          className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-400 transition hover:border-slate-300 hover:bg-slate-100 hover:text-[#0F1F3D]"
-        >
-          <Bell size={16} />
-          {/* dot indikator */}
-          <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-[#F5A623]" />
-        </button>
+        {/* ← Ganti tombol Bell statis dengan NotificationDropdown */}
+        <NotificationDropdown />
 
         {/* Divider */}
         <div className="h-6 w-px bg-slate-200" />

@@ -15,6 +15,8 @@ export interface IWorkPermit extends Document {
   tenagaAhliK3: mongoose.Types.ObjectId;
   noTelpTenagaAhliK3: string;
 
+  createdBy: mongoose.Types.ObjectId;
+
   status:
     | "draft"
     | "submitted"
@@ -96,6 +98,12 @@ const WorkPermitSchema = new Schema<IWorkPermit>(
       required: true,
     },
     noTelpTenagaAhliK3: { type: String, required: true },
+
+    createdBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
 
     status: { type: String, default: "submitted" },
     catatanPenolakan: { type: String, default: "" },

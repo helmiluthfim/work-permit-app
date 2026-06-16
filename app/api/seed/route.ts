@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-
 import User from "@/models/User";
 import { connectDB } from "@/lib/mongodb";
 
@@ -17,20 +16,21 @@ export async function GET() {
       });
     }
 
+    // ← Hash password sebelum disimpan
     const users = [
       {
         username: "pjteknik",
-        password: "123",
+        password: await bcrypt.hash("123", 10),
         role: "PJ_TEKNIK",
       },
       {
         username: "k3",
-        password: "1234",
+        password: await bcrypt.hash("1234", 10),
         role: "TENAGA_AHLI_K3",
       },
       {
         username: "direktur",
-        password: "12345",
+        password: await bcrypt.hash("12345", 10),
         role: "DIREKTUR",
       },
     ];
@@ -44,15 +44,9 @@ export async function GET() {
     });
   } catch (error) {
     console.error(error);
-
     return NextResponse.json(
-      {
-        success: false,
-        message: "Seed gagal",
-      },
-      {
-        status: 500,
-      },
+      { success: false, message: "Seed gagal" },
+      { status: 500 },
     );
   }
 }
