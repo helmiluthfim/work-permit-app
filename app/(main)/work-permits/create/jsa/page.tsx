@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   ShieldAlert,
@@ -13,6 +13,9 @@ import {
   Info,
   UserCheck,
   FileText,
+  Search,
+  ChevronDown,
+  Check,
 } from "lucide-react";
 import { WorkPermitFormContext } from "../layout";
 import {
@@ -61,6 +64,160 @@ function JsaColumn({
         </span>
       </div>
       <div className="min-h-[5rem]">{children}</div>
+    </div>
+  );
+}
+
+// Dropdown pelaksana dengan search bar
+function PelaksanaDropdown({
+  options,
+  selectedIds,
+  onToggle,
+}: {
+  options: Personnel[];
+  selectedIds: string[];
+  onToggle: (id: string) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Tutup dropdown saat klik di luar area
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Auto-focus search bar saat dropdown dibuka
+  useEffect(() => {
+    if (isOpen) {
+      // delay kecil agar elemen sudah ter-render sebelum difokuskan
+      const t = setTimeout(() => searchInputRef.current?.focus(), 0);
+      return () => clearTimeout(t);
+    } else {
+      setQuery("");
+    }
+  }, [isOpen]);
+
+  const filteredOptions = options.filter((person) =>
+    person.nama.toLowerCase().includes(query.toLowerCase()),
+  );
+
+  return (
+    <div ref={containerRef} className="relative">
+      {/* Trigger button */}
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        className={`flex w-full items-center justify-between gap-2 rounded-xl border px-4 py-3 text-sm font-semibold transition ${
+          isOpen
+            ? "border-[#0F1F3D]/40 bg-white ring-2 ring-[#0F1F3D]/10"
+            : "border-slate-200 bg-slate-50 hover:bg-white"
+        }`}
+      >
+        <span className="flex items-center gap-2 text-slate-500">
+          <Search size={15} className="text-slate-400" />
+          {selectedIds.length > 0
+            ? `${selectedIds.length} pelaksana dipilih`
+            : "Cari & pilih pelaksana pekerjaan..."}
+        </span>
+        <ChevronDown
+          size={16}
+          className={`shrink-0 text-slate-400 transition-transform ${
+            isOpen ? "rotate-180" : ""
+          }`}
+        />
+      </button>
+
+      {/* Panel dropdown */}
+      {isOpen && (
+        <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg animate-in fade-in slide-in-from-top-1 duration-150">
+          {/* Search bar */}
+          <div className="flex items-center gap-2 border-b border-slate-100 px-3 py-2.5">
+            <Search size={15} className="shrink-0 text-slate-400" />
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Ketik nama pelaksana..."
+              className="w-full bg-transparent text-sm text-[#0F1F3D] placeholder:text-slate-400 focus:outline-none"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                className="shrink-0 rounded-full p-0.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
+
+          {/* List opsi (scrollable, dikunci agar tidak menyebar ke scroll halaman) */}
+          <ul
+            onWheel={(e) => {
+              const el = e.currentTarget;
+              const atTop = el.scrollTop === 0;
+              const atBottom =
+                Math.ceil(el.scrollTop + el.clientHeight) >= el.scrollHeight;
+              if ((atTop && e.deltaY < 0) || (atBottom && e.deltaY > 0)) {
+                e.preventDefault();
+                e.stopPropagation();
+              }
+            }}
+            className="max-h-64 overflow-y-auto p-1.5 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300 hover:[&::-webkit-scrollbar-thumb]:bg-slate-400"
+            style={{ scrollbarWidth: "thin", overscrollBehavior: "contain" }}
+          >
+            {filteredOptions.length > 0 ? (
+              filteredOptions.map((person) => {
+                const isSelected = selectedIds.includes(person._id);
+                return (
+                  <li key={person._id}>
+                    <button
+                      type="button"
+                      onClick={() => onToggle(person._id)}
+                      className={`flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold transition ${
+                        isSelected
+                          ? "bg-[#0F1F3D]/5 text-[#0F1F3D]"
+                          : "text-slate-600 hover:bg-slate-50"
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <span
+                          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
+                            isSelected
+                              ? "border-[#0F1F3D] bg-[#0F1F3D]"
+                              : "border-slate-300"
+                          }`}
+                        >
+                          {isSelected && (
+                            <Check size={11} className="text-white" />
+                          )}
+                        </span>
+                        {person.nama}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })
+            ) : (
+              <li className="py-6 text-center text-sm text-slate-400">
+                Tidak ditemukan pelaksana dengan nama tersebut.
+              </li>
+            )}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
@@ -169,8 +326,23 @@ export default function TabJSA() {
           memahami dokumen JSA ini sebelum bekerja.
         </p>
 
+        {/* Dropdown dengan search bar */}
+        {pelaksanaOptions.length > 0 ? (
+          <PelaksanaDropdown
+            options={pelaksanaOptions}
+            selectedIds={formData.jsaPelaksana || []}
+            onToggle={togglePelaksana}
+          />
+        ) : (
+          <div className="rounded-xl border border-dashed border-slate-200 py-8 text-center">
+            <p className="text-sm text-slate-400">
+              Tidak ada data personel dengan jabatan "Pelaksana".
+            </p>
+          </div>
+        )}
+
         {/* Chip selected */}
-        <div className="mb-4 flex min-h-9 flex-wrap gap-2">
+        <div className="mt-4 flex min-h-9 flex-wrap gap-2">
           {!formData.jsaPelaksana || formData.jsaPelaksana.length === 0 ? (
             <span className="flex items-center gap-1.5 rounded-full border border-dashed border-slate-300 px-3 py-1 text-xs text-slate-400">
               <UserCheck size={12} /> Belum ada pelaksana dipilih
@@ -195,46 +367,6 @@ export default function TabJSA() {
                 </span>
               );
             })
-          )}
-        </div>
-
-        {/* Checklist */}
-        <div className="max-h-60 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-2">
-          {pelaksanaOptions.length > 0 ? (
-            <ul className="space-y-1">
-              {pelaksanaOptions.map((person) => {
-                const isSelected = formData.jsaPelaksana?.includes(person._id);
-                return (
-                  <li key={person._id}>
-                    <label
-                      className={`flex cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 transition ${
-                        isSelected
-                          ? "border-[#0F1F3D]/20 bg-[#0F1F3D]/5"
-                          : "border-transparent hover:bg-white"
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isSelected || false}
-                        onChange={() => togglePelaksana(person._id)}
-                        className="h-4 w-4 rounded border-slate-300 text-[#0F1F3D] accent-[#0F1F3D]"
-                      />
-                      <span
-                        className={`text-sm font-semibold ${
-                          isSelected ? "text-[#0F1F3D]" : "text-slate-600"
-                        }`}
-                      >
-                        {person.nama}
-                      </span>
-                    </label>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <p className="py-8 text-center text-sm text-slate-400">
-              Tidak ada data personel dengan jabatan "Pelaksana".
-            </p>
           )}
         </div>
       </SectionCard>

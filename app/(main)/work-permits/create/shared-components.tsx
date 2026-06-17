@@ -33,7 +33,7 @@ export function SectionCard({
     indigo: "bg-indigo-50/60 border-indigo-100",
   };
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div
         className={`flex items-center justify-between border-b px-6 py-4 ${accentMap[accent]}`}
       >
@@ -52,7 +52,7 @@ export function SectionCard({
           </span>
         )}
       </div>
-      <div className="p-6">{children}</div>
+      <div className="relative overflow-visible p-6">{children}</div>
     </div>
   );
 }

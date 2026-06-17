@@ -16,6 +16,8 @@ import {
   ChevronRight,
   Save,
   Lightbulb,
+  GripVertical,
+  CornerDownLeft,
 } from "lucide-react";
 
 const TABS = [
@@ -67,6 +69,117 @@ function SectionCard({
   );
 }
 
+// ─── ListItemInput ──────────────────────────────────────────────────────────
+// Pengganti textarea "satu baris = satu item". User ketik teks lalu tekan
+// Enter (atau klik Tambah) untuk menjadikannya item baru pada daftar.
+// Setiap item tampil sebagai baris bernomor dengan tombol hapus, sehingga
+// jumlah & isi item langsung terlihat jelas — tidak perlu menebak-nebak
+// hasil pemecahan baris seperti pada textarea biasa.
+function ListItemInput({
+  items,
+  onChange,
+  placeholder,
+  helperText,
+}: {
+  items: string[];
+  onChange: (items: string[]) => void;
+  placeholder?: string;
+  helperText?: string;
+}) {
+  const [draft, setDraft] = useState("");
+
+  const commitDraft = () => {
+    const trimmed = draft.trim();
+    if (!trimmed) return;
+    onChange([...items, trimmed]);
+    setDraft("");
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      commitDraft();
+    }
+  };
+
+  const removeItem = (idx: number) => {
+    onChange(items.filter((_, i) => i !== idx));
+  };
+
+  const updateItem = (idx: number, value: string) => {
+    const next = [...items];
+    next[idx] = value;
+    onChange(next);
+  };
+
+  return (
+    <div>
+      {/* Daftar item yang sudah ditambahkan */}
+      {items.length > 0 && (
+        <ul className="mb-2.5 space-y-1.5">
+          {items.map((item, idx) => (
+            <li
+              key={idx}
+              className="group flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2"
+            >
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#0F1F3D]/8 text-[10px] font-black text-[#0F1F3D]">
+                {idx + 1}
+              </span>
+              <input
+                type="text"
+                value={item}
+                onChange={(e) => updateItem(idx, e.target.value)}
+                className="min-w-0 flex-1 bg-transparent text-sm text-[#0F1F3D] outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => removeItem(idx)}
+                className="shrink-0 rounded-md p-1 text-slate-300 transition hover:bg-red-50 hover:text-red-500"
+                aria-label="Hapus item"
+              >
+                <Trash2 size={13} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {/* Input untuk menambah item baru */}
+      <div className="flex items-center gap-2 rounded-lg border border-dashed border-slate-300 bg-white px-3 py-2 transition focus-within:border-[#0F1F3D] focus-within:ring-2 focus-within:ring-[#0F1F3D]/10">
+        <Plus size={14} className="shrink-0 text-slate-400" />
+        <input
+          type="text"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder || "Ketik item, lalu tekan Enter..."}
+          className="min-w-0 flex-1 bg-transparent text-sm text-[#0F1F3D] placeholder-slate-400 outline-none"
+        />
+        {draft.trim() && (
+          <button
+            type="button"
+            onClick={commitDraft}
+            className="flex shrink-0 items-center gap-1 rounded-md bg-[#0F1F3D] px-2.5 py-1 text-[11px] font-bold text-white transition hover:bg-[#1a3561]"
+          >
+            <CornerDownLeft size={11} /> Tambah
+          </button>
+        )}
+      </div>
+
+      <div className="mt-1.5 flex items-center justify-between">
+        <p className="text-xs text-slate-400">
+          {helperText || "Tekan Enter setelah mengetik untuk menambah item."}
+        </p>
+        {items.length > 0 && (
+          <span className="text-xs font-semibold text-slate-400">
+            {items.length} item
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function CreateJobTemplatePage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -76,17 +189,19 @@ export default function CreateJobTemplatePage() {
   const [kodePekerjaan, setKodePekerjaan] = useState("");
   const [namaPekerjaan, setNamaPekerjaan] = useState("");
   const [status, setStatus] = useState("active");
-  const [wpKlasifikasi, setWpKlasifikasi] = useState("");
-  const [wpProsedur, setWpProsedur] = useState("");
-  const [wpLampiran, setWpLampiran] = useState("");
+
+  // ─── STATE WORK PERMIT (kini berupa array, bukan teks multi-baris) ───
+  const [wpKlasifikasi, setWpKlasifikasi] = useState<string[]>([]);
+  const [wpProsedur, setWpProsedur] = useState<string[]>([]);
+  const [wpLampiran, setWpLampiran] = useState<string[]>([]);
 
   // ─── STATE JSA MULTI-SECTION (Judul & Items) ───
   const [jsaData, setJsaData] = useState([
     {
       judul: "",
-      langkahKerja: "",
-      bahayaResiko: "",
-      pengendalian: "",
+      langkahKerja: [] as string[],
+      bahayaResiko: [] as string[],
+      pengendalian: [] as string[],
     },
   ]);
 
@@ -106,26 +221,26 @@ export default function CreateJobTemplatePage() {
     },
   ]);
 
-  // Ganti state awal SOP
+  // Ganti state awal SOP — uraianKegiatan.isi kini array, bukan teks multi-baris
   const [sopData, setSopData] = useState([
     {
-      perlengkapanKerja: "",
-      peralatanUkur: "",
-      peralatanKerja: "",
-      uraianKegiatan: [{ judul: "", isi: "" }], // ← array of objects
+      perlengkapanKerja: [] as string[],
+      peralatanUkur: [] as string[],
+      peralatanKerja: [] as string[],
+      uraianKegiatan: [{ judul: "", isi: [] as string[] }],
     },
   ]);
 
   const [ikData, setIkData] = useState([
     {
-      perlengkapanKerja: "",
-      peralatanUkur: "",
-      peralatanKerja: "",
-      uraianKegiatan: [{ judul: "", isi: "" }], // ← array of objects
+      perlengkapanKerja: [] as string[],
+      peralatanUkur: [] as string[],
+      peralatanKerja: [] as string[],
+      uraianKegiatan: [{ judul: "", isi: [] as string[] }],
     },
   ]);
 
-  const updateSopField = (i: number, field: string, val: string) => {
+  const updateSopField = (i: number, field: string, val: string[]) => {
     const n = [...sopData];
     n[i] = { ...n[i], [field]: val };
     setSopData(n);
@@ -133,7 +248,7 @@ export default function CreateJobTemplatePage() {
 
   const addSopUraian = (sopIdx: number) => {
     const n = [...sopData];
-    n[sopIdx].uraianKegiatan.push({ judul: "", isi: "" });
+    n[sopIdx].uraianKegiatan.push({ judul: "", isi: [] });
     setSopData(n);
   };
 
@@ -149,10 +264,10 @@ export default function CreateJobTemplatePage() {
     sopIdx: number,
     uraianIdx: number,
     field: "judul" | "isi",
-    val: string,
+    val: string | string[],
   ) => {
     const n = [...sopData];
-    n[sopIdx].uraianKegiatan[uraianIdx][field] = val;
+    n[sopIdx].uraianKegiatan[uraianIdx][field] = val as never;
     setSopData(n);
   };
 
@@ -163,16 +278,19 @@ export default function CreateJobTemplatePage() {
     if (!confirmCopy) return;
 
     const copiedData = sopData.map((sop) => ({
-      perlengkapanKerja: sop.perlengkapanKerja,
-      peralatanUkur: sop.peralatanUkur,
-      peralatanKerja: sop.peralatanKerja,
-      uraianKegiatan: sop.uraianKegiatan.map((u) => ({ ...u })), // deep copy
+      perlengkapanKerja: [...sop.perlengkapanKerja],
+      peralatanUkur: [...sop.peralatanUkur],
+      peralatanKerja: [...sop.peralatanKerja],
+      uraianKegiatan: sop.uraianKegiatan.map((u) => ({
+        judul: u.judul,
+        isi: [...u.isi],
+      })), // deep copy
     }));
 
     setIkData(copiedData);
   };
 
-  const updateIkField = (i: number, field: string, val: string) => {
+  const updateIkField = (i: number, field: string, val: string[]) => {
     const n = [...ikData];
     n[i] = { ...n[i], [field]: val };
     setIkData(n);
@@ -180,7 +298,7 @@ export default function CreateJobTemplatePage() {
 
   const addIkUraian = (ikIdx: number) => {
     const n = [...ikData];
-    n[ikIdx].uraianKegiatan.push({ judul: "", isi: "" });
+    n[ikIdx].uraianKegiatan.push({ judul: "", isi: [] });
     setIkData(n);
   };
 
@@ -196,18 +314,12 @@ export default function CreateJobTemplatePage() {
     ikIdx: number,
     uraianIdx: number,
     field: "judul" | "isi",
-    val: string,
+    val: string | string[],
   ) => {
     const n = [...ikData];
-    n[ikIdx].uraianKegiatan[uraianIdx][field] = val;
+    n[ikIdx].uraianKegiatan[uraianIdx][field] = val as never;
     setIkData(n);
   };
-
-  const textToArray = (text: string) =>
-    text
-      .split("\n")
-      .map((s) => s.trim())
-      .filter(Boolean);
 
   // ─── HANDLER JSA MULTI-SECTION ───
   const addJsaSection = () => {
@@ -215,9 +327,9 @@ export default function CreateJobTemplatePage() {
       ...jsaData,
       {
         judul: "",
-        langkahKerja: "",
-        bahayaResiko: "",
-        pengendalian: "",
+        langkahKerja: [],
+        bahayaResiko: [],
+        pengendalian: [],
       },
     ]);
   };
@@ -232,7 +344,7 @@ export default function CreateJobTemplatePage() {
     setJsaData(newData);
   };
 
-  const updateJsaField = (index: number, field: string, value: string) => {
+  const updateJsaField = (index: number, field: string, value: string[]) => {
     const newData = [...jsaData];
     newData[index] = {
       ...newData[index],
@@ -284,16 +396,16 @@ export default function CreateJobTemplatePage() {
       namaPekerjaan,
       status,
       workPermitTemplate: {
-        klasifikasiPekerjaan: textToArray(wpKlasifikasi),
-        prosedurPekerjaan: textToArray(wpProsedur),
-        lampiran: textToArray(wpLampiran),
+        klasifikasiPekerjaan: wpKlasifikasi,
+        prosedurPekerjaan: wpProsedur,
+        lampiran: wpLampiran,
       },
       // Mapping JSA Data agar menjadi Array of Objects
       jsaTemplate: jsaData.map((sec) => ({
         judulJsa: sec.judul,
-        langkahKerja: textToArray(sec.langkahKerja),
-        bahayaResiko: textToArray(sec.bahayaResiko),
-        pengendalian: textToArray(sec.pengendalian),
+        langkahKerja: sec.langkahKerja,
+        bahayaResiko: sec.bahayaResiko,
+        pengendalian: sec.pengendalian,
       })),
       hirarcTemplate: {
         potensiBahaya: hirarcList.map((h) => h.potensi),
@@ -319,16 +431,16 @@ export default function CreateJobTemplatePage() {
         const judulArr: string[] = [];
         const uraianArr: string[] = [];
 
-        // Proses memecah baris (Enter) sekaligus menjaga array tetap sejajar
+        // Setiap baris pada "isi" sudah berupa item array tersendiri,
+        // jadi tidak perlu lagi memecah teks multi-baris di sini.
         s.uraianKegiatan.forEach((u) => {
-          const lines = textToArray(u.isi);
-          if (lines.length === 0) {
+          if (u.isi.length === 0) {
             if (u.judul) {
               judulArr.push(u.judul);
               uraianArr.push("");
             }
           } else {
-            lines.forEach((line, idx) => {
+            u.isi.forEach((line, idx) => {
               // Hanya masukkan Judul di baris pertama, sisanya isi string kosong
               judulArr.push(idx === 0 ? u.judul : "");
               uraianArr.push(line);
@@ -337,9 +449,9 @@ export default function CreateJobTemplatePage() {
         });
 
         return {
-          perlengkapanKerja: textToArray(s.perlengkapanKerja),
-          peralatanUkur: textToArray(s.peralatanUkur),
-          peralatanKerja: textToArray(s.peralatanKerja),
+          perlengkapanKerja: s.perlengkapanKerja,
+          peralatanUkur: s.peralatanUkur,
+          peralatanKerja: s.peralatanKerja,
           judulUraianKegiatan: judulArr,
           uraianKegiatan: uraianArr,
         };
@@ -351,14 +463,13 @@ export default function CreateJobTemplatePage() {
         const uraianArr: string[] = [];
 
         ik.uraianKegiatan.forEach((u) => {
-          const lines = textToArray(u.isi);
-          if (lines.length === 0) {
+          if (u.isi.length === 0) {
             if (u.judul) {
               judulArr.push(u.judul);
               uraianArr.push("");
             }
           } else {
-            lines.forEach((line, idx) => {
+            u.isi.forEach((line, idx) => {
               judulArr.push(idx === 0 ? u.judul : "");
               uraianArr.push(line);
             });
@@ -366,9 +477,9 @@ export default function CreateJobTemplatePage() {
         });
 
         return {
-          perlengkapanKerja: textToArray(ik.perlengkapanKerja),
-          peralatanUkur: textToArray(ik.peralatanUkur),
-          peralatanKerja: textToArray(ik.peralatanKerja),
+          perlengkapanKerja: ik.perlengkapanKerja,
+          peralatanUkur: ik.peralatanUkur,
+          peralatanKerja: ik.peralatanKerja,
           judulUraianKegiatan: judulArr,
           uraianKegiatan: uraianArr,
         };
@@ -539,7 +650,6 @@ export default function CreateJobTemplatePage() {
                     </h2>
                   </div>
                 </div>
-                ```
                 <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                   <div className="border-b border-slate-100 bg-[#0F1F3D] px-5 py-3">
                     <h3 className="text-sm font-bold text-white">
@@ -551,53 +661,37 @@ export default function CreateJobTemplatePage() {
                     <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                       <FieldLabel>Klasifikasi Pekerjaan</FieldLabel>
 
-                      <textarea
-                        rows={5}
-                        value={wpKlasifikasi}
-                        onChange={(e) => setWpKlasifikasi(e.target.value)}
-                        placeholder="Pekerjaan Panas&#10;Pekerjaan Ketinggian&#10;Ruang Terbatas"
-                        className={textareaClass}
+                      <ListItemInput
+                        items={wpKlasifikasi}
+                        onChange={setWpKlasifikasi}
+                        placeholder="Cth: Pekerjaan Panas"
+                        helperText="Tekan Enter untuk menambah klasifikasi baru."
                       />
-
-                      <p className="mt-2 text-xs text-slate-500">
-                        Satu klasifikasi pekerjaan per baris.
-                      </p>
                     </div>
 
                     <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
                       <FieldLabel>Prosedur Pekerjaan</FieldLabel>
 
-                      <textarea
-                        rows={8}
-                        value={wpProsedur}
-                        onChange={(e) => setWpProsedur(e.target.value)}
-                        placeholder="Persiapan Area&#10;Pemeriksaan Peralatan&#10;Pelaksanaan Pekerjaan"
-                        className={textareaClass}
+                      <ListItemInput
+                        items={wpProsedur}
+                        onChange={setWpProsedur}
+                        placeholder="Cth: Persiapan Area"
+                        helperText="Akan ditampilkan otomatis pada Work Permit, sesuai urutan."
                       />
-
-                      <p className="mt-2 text-xs text-slate-500">
-                        Akan ditampilkan otomatis pada Work Permit.
-                      </p>
                     </div>
 
                     <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
                       <FieldLabel>Lampiran Tambahan</FieldLabel>
 
-                      <textarea
-                        rows={5}
-                        value={wpLampiran}
-                        onChange={(e) => setWpLampiran(e.target.value)}
-                        placeholder="Sertifikat Welder&#10;Checklist Peralatan&#10;Foto Area"
-                        className={textareaClass}
+                      <ListItemInput
+                        items={wpLampiran}
+                        onChange={setWpLampiran}
+                        placeholder="Cth: Sertifikat Welder"
+                        helperText="Tekan Enter untuk menambah lampiran baru."
                       />
-
-                      <p className="mt-2 text-xs text-slate-500">
-                        Satu lampiran pada setiap baris.
-                      </p>
                     </div>
                   </div>
                 </div>
-                ```
               </div>
             )}
 
@@ -613,7 +707,6 @@ export default function CreateJobTemplatePage() {
                       Job Safety Analysis Template
                     </h2>
                   </div>
-                  ```
                   <button
                     type="button"
                     onClick={addJsaSection}
@@ -658,9 +751,7 @@ export default function CreateJobTemplatePage() {
                         <input
                           type="text"
                           value={section.judul}
-                          onChange={(e) =>
-                            updateJsaField(i, "judul", e.target.value)
-                          }
+                          onChange={(e) => updateJsaJudul(i, e.target.value)}
                           placeholder="JSA Pekerjaan Pengelasan"
                           className={inputClass}
                         />
@@ -670,46 +761,42 @@ export default function CreateJobTemplatePage() {
                         <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                           <FieldLabel>Langkah Kerja</FieldLabel>
 
-                          <textarea
-                            rows={8}
-                            value={section.langkahKerja}
-                            onChange={(e) =>
-                              updateJsaField(i, "langkahKerja", e.target.value)
+                          <ListItemInput
+                            items={section.langkahKerja}
+                            onChange={(val) =>
+                              updateJsaField(i, "langkahKerja", val)
                             }
-                            className={textareaClass}
+                            placeholder="Cth: Pasang APD lengkap"
                           />
                         </div>
 
                         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
                           <FieldLabel>Bahaya & Resiko</FieldLabel>
 
-                          <textarea
-                            rows={8}
-                            value={section.bahayaResiko}
-                            onChange={(e) =>
-                              updateJsaField(i, "bahayaResiko", e.target.value)
+                          <ListItemInput
+                            items={section.bahayaResiko}
+                            onChange={(val) =>
+                              updateJsaField(i, "bahayaResiko", val)
                             }
-                            className={textareaClass}
+                            placeholder="Cth: Terpapar asap las"
                           />
                         </div>
 
                         <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
                           <FieldLabel>Pengendalian</FieldLabel>
 
-                          <textarea
-                            rows={8}
-                            value={section.pengendalian}
-                            onChange={(e) =>
-                              updateJsaField(i, "pengendalian", e.target.value)
+                          <ListItemInput
+                            items={section.pengendalian}
+                            onChange={(val) =>
+                              updateJsaField(i, "pengendalian", val)
                             }
-                            className={textareaClass}
+                            placeholder="Cth: Gunakan respirator"
                           />
                         </div>
                       </div>
                     </div>
                   </div>
                 ))}
-                ```
               </div>
             )}
 
@@ -960,43 +1047,32 @@ export default function CreateJobTemplatePage() {
                       <div className="grid gap-4 md:grid-cols-3">
                         <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                           <FieldLabel>Perlengkapan Kerja</FieldLabel>
-                          <textarea
-                            rows={4}
-                            value={section.perlengkapanKerja}
-                            onChange={(e) =>
-                              updateSopField(
-                                i,
-                                "perlengkapanKerja",
-                                e.target.value,
-                              )
+                          <ListItemInput
+                            items={section.perlengkapanKerja}
+                            onChange={(val) =>
+                              updateSopField(i, "perlengkapanKerja", val)
                             }
-                            className={textareaClass}
+                            placeholder="Cth: Helm safety"
                           />
                         </div>
                         <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                           <FieldLabel>Peralatan Ukur</FieldLabel>
-                          <textarea
-                            rows={4}
-                            value={section.peralatanUkur}
-                            onChange={(e) =>
-                              updateSopField(i, "peralatanUkur", e.target.value)
+                          <ListItemInput
+                            items={section.peralatanUkur}
+                            onChange={(val) =>
+                              updateSopField(i, "peralatanUkur", val)
                             }
-                            className={textareaClass}
+                            placeholder="Cth: Multimeter"
                           />
                         </div>
                         <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                           <FieldLabel>Peralatan Kerja</FieldLabel>
-                          <textarea
-                            rows={4}
-                            value={section.peralatanKerja}
-                            onChange={(e) =>
-                              updateSopField(
-                                i,
-                                "peralatanKerja",
-                                e.target.value,
-                              )
+                          <ListItemInput
+                            items={section.peralatanKerja}
+                            onChange={(val) =>
+                              updateSopField(i, "peralatanKerja", val)
                             }
-                            className={textareaClass}
+                            placeholder="Cth: Kunci pas set"
                           />
                         </div>
                       </div>
@@ -1052,18 +1128,14 @@ export default function CreateJobTemplatePage() {
                               </div>
                               <div>
                                 <FieldLabel>Uraian Kegiatan</FieldLabel>
-                                <textarea
-                                  rows={4}
-                                  value={uraian.isi}
-                                  onChange={(e) =>
-                                    updateSopUraian(i, j, "isi", e.target.value)
+                                <ListItemInput
+                                  items={uraian.isi}
+                                  onChange={(val) =>
+                                    updateSopUraian(i, j, "isi", val)
                                   }
-                                  placeholder="Pastikan area kerja bersih&#10;Pasang safety sign&#10;Siapkan peralatan"
-                                  className={textareaClass}
+                                  placeholder="Cth: Pastikan area kerja bersih"
+                                  helperText="Setiap langkah jadi satu item pada daftar."
                                 />
-                                <p className="mt-1.5 text-xs text-slate-400">
-                                  Satu uraian per baris.
-                                </p>
                               </div>
                             </div>
                           ))}
@@ -1112,39 +1184,32 @@ export default function CreateJobTemplatePage() {
                       <div className="grid gap-4 md:grid-cols-3">
                         <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                           <FieldLabel>Perlengkapan Kerja</FieldLabel>
-                          <textarea
-                            rows={4}
-                            value={section.perlengkapanKerja}
-                            onChange={(e) =>
-                              updateIkField(
-                                i,
-                                "perlengkapanKerja",
-                                e.target.value,
-                              )
+                          <ListItemInput
+                            items={section.perlengkapanKerja}
+                            onChange={(val) =>
+                              updateIkField(i, "perlengkapanKerja", val)
                             }
-                            className={textareaClass}
+                            placeholder="Cth: Helm safety"
                           />
                         </div>
                         <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                           <FieldLabel>Peralatan Ukur</FieldLabel>
-                          <textarea
-                            rows={4}
-                            value={section.peralatanUkur}
-                            onChange={(e) =>
-                              updateIkField(i, "peralatanUkur", e.target.value)
+                          <ListItemInput
+                            items={section.peralatanUkur}
+                            onChange={(val) =>
+                              updateIkField(i, "peralatanUkur", val)
                             }
-                            className={textareaClass}
+                            placeholder="Cth: Multimeter"
                           />
                         </div>
                         <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                           <FieldLabel>Peralatan Kerja</FieldLabel>
-                          <textarea
-                            rows={4}
-                            value={section.peralatanKerja}
-                            onChange={(e) =>
-                              updateIkField(i, "peralatanKerja", e.target.value)
+                          <ListItemInput
+                            items={section.peralatanKerja}
+                            onChange={(val) =>
+                              updateIkField(i, "peralatanKerja", val)
                             }
-                            className={textareaClass}
+                            placeholder="Cth: Kunci pas set"
                           />
                         </div>
                       </div>
@@ -1200,18 +1265,14 @@ export default function CreateJobTemplatePage() {
                               </div>
                               <div>
                                 <FieldLabel>Uraian Kegiatan</FieldLabel>
-                                <textarea
-                                  rows={4}
-                                  value={uraian.isi}
-                                  onChange={(e) =>
-                                    updateIkUraian(i, j, "isi", e.target.value)
+                                <ListItemInput
+                                  items={uraian.isi}
+                                  onChange={(val) =>
+                                    updateIkUraian(i, j, "isi", val)
                                   }
-                                  placeholder="Pastikan area kerja bersih&#10;Pasang safety sign&#10;Siapkan peralatan"
-                                  className={textareaClass}
+                                  placeholder="Cth: Pastikan area kerja bersih"
+                                  helperText="Setiap langkah jadi satu item pada daftar."
                                 />
-                                <p className="mt-1.5 text-xs text-slate-400">
-                                  Satu uraian per baris.
-                                </p>
                               </div>
                             </div>
                           ))}
