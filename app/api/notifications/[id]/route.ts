@@ -7,7 +7,7 @@ import { connectDB } from "@/lib/mongodb";
 // PATCH → tandai satu notifikasi sebagai sudah dibaca
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getServerSession(authOption);
@@ -17,11 +17,13 @@ export async function PATCH(
 
     await connectDB();
 
+    const { id } = await params;
+
     const userId = (session.user as any).id;
 
     const notification = await Notification.findOneAndUpdate(
       {
-        _id: params.id,
+        _id: id,
         recipientId: userId, // pastikan notif ini milik user yang login
       },
       { isRead: true },
