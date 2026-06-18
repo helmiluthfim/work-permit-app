@@ -77,7 +77,7 @@ export default function AppSidebar() {
         </div>
         <div className="min-w-0">
           <p className="truncate text-[11px] font-black uppercase tracking-[0.12em] text-white">
-            Eksavindo
+            EKSTRAMA
           </p>
           <p className="truncate text-[9px] uppercase tracking-widest text-[#F5A623]/70">
             K3 System
