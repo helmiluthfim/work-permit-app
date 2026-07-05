@@ -134,7 +134,7 @@ export default function DashboardPjTeknik() {
           onClick={() => router.push("/work-permits/create")}
           className="inline-flex items-center gap-2 rounded-xl bg-[#0F1F3D] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:-translate-y-px hover:bg-[#1a3561] active:scale-95"
         >
-          <Plus size={16} /> Buat Izin Kerja Baru
+          <Plus size={16} /> Buat Work Permit Baru
         </button>
       </div>
 

@@ -77,9 +77,7 @@ export const WorkPermitHTML = ({ permit }: Props) => (
     <div className="border-2 border-black text-xs text-black">
       {/* Header */}
       <div className="border-b-2 border-black py-2 text-center">
-        <h1 className="text-lg font-bold tracking-widest">
-          FORM IZIN PEKERJAAN
-        </h1>
+        <h1 className="text-lg font-bold tracking-widest">FORM WORK PERMIT</h1>
         <p className="text-[10px] font-semibold mt-0.5">
           NOMOR DOKUMEN: {permit.nomorWP}
         </p>
@@ -196,7 +194,7 @@ export const WorkPermitHTML = ({ permit }: Props) => (
 
       {/* E. Lampiran */}
       <div className="border-b border-black bg-gray-100 px-2 py-1 font-bold">
-        E. LAMPIRAN IZIN KERJA
+        E. LAMPIRAN WORK PERMIT
       </div>
       <div className="p-3">
         <DynamicListHTML items={permit.workPermitData?.lampiran} />

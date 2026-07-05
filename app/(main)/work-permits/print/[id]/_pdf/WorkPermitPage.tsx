@@ -65,7 +65,7 @@ export const WorkPermitPage = ({ permit }: { permit: Permit }) => (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>FORM IZIN PEKERJAAN</Text>
+        <Text style={styles.title}>FORM WORK PERMIT</Text>
         <Text style={styles.docNumber}>NOMOR DOKUMEN: {permit.nomorWP}</Text>
       </View>
 
@@ -166,7 +166,7 @@ export const WorkPermitPage = ({ permit }: { permit: Permit }) => (
       </View>
 
       {/* E. Lampiran */}
-      <Text style={styles.sectionTitle}>E. LAMPIRAN IZIN KERJA</Text>
+      <Text style={styles.sectionTitle}>E. LAMPIRAN WORK PERMIT</Text>
       <View style={[styles.contentBox, { borderBottom: "none" }]}>
         <PdfDynamicList items={permit.workPermitData?.lampiran} />
       </View>
