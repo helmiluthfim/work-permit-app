@@ -1,11 +1,12 @@
 // ==========================================
-// PDF HALAMAN 1: WORK PERMIT
+// PDF HALAMAN 1: WORK PERMIT (UPDATED)
 // ==========================================
 
-import { Page, View, Text } from "@react-pdf/renderer";
+import { Page, View, Text, Image } from "@react-pdf/renderer";
 import { styles } from "../_lib/pdfStyles";
 import { Permit } from "../_lib/types";
 import { formatTanggal } from "../_lib/utils";
+import type { SignatureQrCodes } from "../_lib/qrcode";
 
 // ── Sub-komponen: Daftar bullet untuk PDF ──
 const PdfDynamicList = ({ items }: { items?: string[] }) => {
@@ -24,27 +25,67 @@ const PdfDynamicList = ({ items }: { items?: string[] }) => {
   );
 };
 
+// ── Sub-komponen: QR code TTD (PERBAIKAN) ──
+const SignatureQr = ({ qrDataUrl }: { qrDataUrl?: string | null }) => {
+  // Jika string benar-benar kosong atau undefined, jangan tampilkan apa-apa
+  if (!qrDataUrl || qrDataUrl.trim() === "") return null;
+
+  // Memastikan string Base64 memiliki prefix yang dibutuhkan @react-pdf/renderer
+  let formattedSrc = qrDataUrl;
+  if (formattedSrc.startsWith("ey") || !formattedSrc.startsWith("data:")) {
+    // Jika string mentah tanpa format data:image, kita bungkus dengan prefix standard
+    formattedSrc = `data:image/png;base64,${formattedSrc}`;
+  }
+
+  return (
+    <View style={{ alignSelf: "center", alignItems: "center" }}>
+      <Image
+        src={formattedSrc}
+        style={{
+          width: 55,
+          height: 55,
+          alignSelf: "center",
+          marginTop: 4,
+          marginBottom: 2,
+        }}
+      />
+    </View>
+  );
+};
+
 // ── Sub-komponen: Tanda tangan WP ──
-const WorkPermitSignatures = ({ permit }: { permit: Permit }) => (
+const WorkPermitSignatures = ({
+  permit,
+  qrCodes,
+}: {
+  permit: Permit;
+  qrCodes?: SignatureQrCodes;
+}) => (
   <View style={styles.signatureSection}>
     <View style={styles.signatureBox}>
       <Text style={styles.signatureTitle}>
         Diajukan Oleh,{"\n"}Penanggung Jawab Teknik
       </Text>
-      <Text style={styles.signatureName}>{permit.pjTeknik?.nama}</Text>
+      <SignatureQr qrDataUrl={qrCodes?.pjTeknik} />
+      <Text style={styles.signatureName}>{permit.pjTeknik?.nama || "-"}</Text>
+      {/* Kirim data QR jika ada */}
       <Text style={styles.signatureNote}>Telah disetujui secara digital</Text>
     </View>
     <View style={styles.signatureBox}>
       <Text style={styles.signatureTitle}>
         Diperiksa Oleh,{"\n"}Tenaga Ahli K3
       </Text>
-      <Text style={styles.signatureName}>{permit.tenagaAhliK3?.nama}</Text>
+      <SignatureQr qrDataUrl={qrCodes?.tenagaAhliK3} />
+      <Text style={styles.signatureName}>
+        {permit.tenagaAhliK3?.nama || "-"}
+      </Text>
       <Text style={styles.signatureNote}>Telah disetujui secara digital</Text>
     </View>
     <View style={styles.signatureBox}>
       <Text style={styles.signatureTitle}>Disahkan Oleh,{"\n"}Direktur</Text>
       {permit.status === "approved_director" ? (
         <>
+          <SignatureQr qrDataUrl={qrCodes?.direktur} />
           <Text style={styles.signatureName}>BILAL YURINATA</Text>
           <Text style={styles.signatureNote}>
             Telah disetujui secara digital
@@ -60,7 +101,13 @@ const WorkPermitSignatures = ({ permit }: { permit: Permit }) => (
 );
 
 // ── Halaman PDF: Work Permit ──
-export const WorkPermitPage = ({ permit }: { permit: Permit }) => (
+export const WorkPermitPage = ({
+  permit,
+  qrCodes,
+}: {
+  permit: Permit;
+  qrCodes?: SignatureQrCodes;
+}) => (
   <Page size="A4" style={styles.page}>
     <View style={styles.container}>
       {/* Header */}
@@ -172,6 +219,6 @@ export const WorkPermitPage = ({ permit }: { permit: Permit }) => (
       </View>
     </View>
 
-    <WorkPermitSignatures permit={permit} />
+    <WorkPermitSignatures permit={permit} qrCodes={qrCodes} />
   </Page>
 );

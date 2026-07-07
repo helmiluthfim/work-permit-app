@@ -75,6 +75,7 @@ export interface Permit {
   pekerjaan?: Pekerjaan;
   pjTeknik?: Personil;
   tenagaAhliK3?: Personil;
+  direktur?: Personil;
   workPermitData?: WorkPermitData;
 
   // ✅ Pelaksana di root level

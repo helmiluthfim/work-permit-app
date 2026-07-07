@@ -2,12 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOption } from "@/app/api/auth/[...nextauth]/route";
 import { connectDB } from "@/lib/mongodb";
+import JobTemplate from "@/models/JobTemplate";
 import WorkPermit from "@/models/WorkPermit";
 import User from "@/models/User";
-import { createNotification } from "@/lib/createNotification"; // ← tambah ini
+import Personnel from "@/models/Personnel";
+import { createNotification } from "@/lib/createNotification";
+
+export const dynamic = "force-dynamic";
 
 // ========================================================
-// GET: MENGAMBIL DETAIL SATU WORK PERMIT (tidak ada perubahan)
+// GET: MENGAMBIL DETAIL SATU WORK PERMIT (DIPERBAIKI TOTAL)
 // ========================================================
 export async function GET(
   req: NextRequest,
@@ -27,11 +31,15 @@ export async function GET(
       );
     }
 
-    const workPermit = await WorkPermit.findById(id)
-      .populate("pekerjaan", "kodePekerjaan namaPekerjaan")
-      .populate("pjTeknik", "nama jabatan")
-      .populate("tenagaAhliK3", "nama jabatan")
-      .populate("pelaksana", "nama jabatan");
+    // 1. Ambil data Work Permit HANYA mem-populate pekerjaan dan pelaksana.
+    // Kita sengaja TIDAK mem-populate pjTeknik & tenagaAhliK3 di sini
+    // untuk menghindari error relasi schema (ref).
+    const workPermit = (await WorkPermit.findById(id)
+      .populate({ path: "pekerjaan", select: "kodePekerjaan namaPekerjaan" })
+      .populate({ path: "pelaksana", select: "nama jabatan" })
+      .populate({ path: "pjTeknik", select: "nama" })
+      .populate({ path: "tenagaAhliK3", select: "nama" })
+      .lean()) as any;
 
     if (!workPermit) {
       return NextResponse.json(
@@ -40,8 +48,48 @@ export async function GET(
       );
     }
 
+    // 2. Resolve tanda tangan digital berdasarkan role user yang relevan.
+    // WorkPermit.pjTeknik & tenagaAhliK3 merujuk ke dokumen Personnel,
+    // sehingga URL signature harus diambil dari User dengan role yang cocok.
+    const [pjTeknikUser, k3User] = await Promise.all([
+      User.findOne({ role: "PJ_TEKNIK" })
+        .select("username role signatures")
+        .lean(),
+      User.findOne({ role: "TENAGA_AHLI_K3" })
+        .select("username role signatures")
+        .lean(),
+    ]);
+
+    if (workPermit.pjTeknik) {
+      workPermit.pjTeknik = {
+        ...(workPermit.pjTeknik as any),
+        signatures: pjTeknikUser?.signatures ?? null,
+        resolvedSignature: pjTeknikUser?.signatures?.PJ_TEKNIK ?? null,
+      };
+    }
+
+    if (workPermit.tenagaAhliK3) {
+      workPermit.tenagaAhliK3 = {
+        ...(workPermit.tenagaAhliK3 as any),
+        signatures: k3User?.signatures ?? null,
+        resolvedSignature: k3User?.signatures?.TENAGA_AHLI_K3 ?? null,
+      };
+    }
+
+    // 3. Cari data Direktur secara terpisah
+    const direktur = await User.findOne({ role: "DIREKTUR" })
+      .select("username signatures")
+      .lean();
+
+    if (direktur) {
+      (direktur as any).resolvedSignature =
+        (direktur as any).signatures?.DIREKTUR ?? null;
+    }
+
+    workPermit.direktur = direktur;
+
     return NextResponse.json(
-      { success: true, data: workPermit.toObject() },
+      { success: true, data: workPermit },
       { status: 200 },
     );
   } catch (error: any) {
@@ -113,16 +161,11 @@ export async function PATCH(
       );
     }
 
-    console.log("=== DEBUG PATCH ===");
-    console.log("createdBy:", updatedWorkPermit?.createdBy);
-    console.log("status baru:", status);
-
     // ── Cari user PJ Teknik pemilik dokumen untuk notif balik ──
     const pjTeknikUser = await User.findById(updatedWorkPermit.createdBy);
 
     // ── Kirim notifikasi berdasarkan status baru ──
     if (status === "approved_k3") {
-      // K3 approve → notif ke Direktur
       await createNotification({
         recipientRole: "DIREKTUR",
         title: "Work Permit Menunggu Pengesahan",
@@ -131,7 +174,6 @@ export async function PATCH(
         documentId: updatedWorkPermit._id.toString(),
       });
     } else if (status === "approved_director") {
-      // Direktur approve → notif ke K3 dan PJ Teknik
       await createNotification({
         recipientRole: "TENAGA_AHLI_K3",
         title: "Work Permit Telah Disahkan",
@@ -140,7 +182,6 @@ export async function PATCH(
         documentId: updatedWorkPermit._id.toString(),
       });
 
-      // Notif ke PJ Teknik jika ditemukan
       if (pjTeknikUser) {
         await createNotification({
           recipientRole: "PJ_TEKNIK",
@@ -152,7 +193,6 @@ export async function PATCH(
         });
       }
     } else if (status === "rejected") {
-      // K3 atau Direktur tolak → notif ke PJ Teknik
       if (pjTeknikUser) {
         await createNotification({
           recipientRole: "PJ_TEKNIK",

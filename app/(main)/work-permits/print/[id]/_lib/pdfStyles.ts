@@ -204,15 +204,33 @@ export const styles = StyleSheet.create({
   hirarcInfoValue: { flex: 1, padding: 3, fontWeight: "bold" },
 
   // ── Tanda Tangan ─────────────────────────
-  signatureSection: { flexDirection: "row", marginTop: 25 },
-  signatureBox: { flex: 1, textAlign: "center" },
-  signatureTitle: { marginBottom: 45, fontWeight: "bold" },
+  signatureSection: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 25,
+    paddingHorizontal: 10,
+  },
+  signatureBox: {
+    flex: 1,
+    alignItems: "center",
+    textAlign: "center",
+  },
+  signatureTitle: {
+    height: 30, // Tinggi seragam untuk judul, menggantikan marginBottom 45
+    fontWeight: "bold",
+    textAlign: "center",
+  },
   signatureName: {
     fontWeight: "bold",
     textDecoration: "underline",
     textTransform: "uppercase",
+    marginTop: 5, // Memberi jarak antara QR code/area kosong dengan nama
   },
-  signatureRole: { fontSize: 8, marginTop: 2, fontWeight: "bold" },
+  signatureRole: {
+    fontSize: 8,
+    marginTop: 2,
+    fontWeight: "bold",
+  },
   signatureNote: {
     fontSize: 7,
     color: "gray",

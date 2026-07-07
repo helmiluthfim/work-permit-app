@@ -2,9 +2,32 @@
 // PDF HALAMAN: SOP (Standar Operasional Prosedur)
 // ==========================================
 
-import { Page, View, Text } from "@react-pdf/renderer";
+import { Page, View, Text, Image } from "@react-pdf/renderer";
 import { StyleSheet } from "@react-pdf/renderer";
 import { Permit } from "../_lib/types";
+import type { SignatureQrCodes } from "../_lib/qrcode";
+
+const SignatureQr = ({ qrDataUrl }: { qrDataUrl?: string | null }) => {
+  if (!qrDataUrl || qrDataUrl.trim() === "") return null;
+
+  let formattedSrc = qrDataUrl;
+  if (formattedSrc.startsWith("ey") || !formattedSrc.startsWith("data:")) {
+    formattedSrc = `data:image/png;base64,${formattedSrc}`;
+  }
+
+  return (
+    <View style={s.signatureQr}>
+      <Image
+        src={formattedSrc}
+        style={{
+          width: 55,
+          height: 55,
+          alignSelf: "center",
+        }}
+      />
+    </View>
+  );
+};
 
 const s = StyleSheet.create({
   page: {
@@ -95,12 +118,24 @@ const s = StyleSheet.create({
 
   // Tanda tangan
   signatureSection: { flexDirection: "row", marginTop: 24 },
-  signatureBox: { flex: 1, alignItems: "center", paddingHorizontal: 4 },
+  signatureBox: {
+    flex: 1,
+    alignItems: "center",
+    paddingHorizontal: 4,
+    minHeight: 130,
+  },
+  signatureQr: {
+    marginBottom: 6,
+    width: 60,
+    height: 60,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   signatureTitle: {
     fontSize: 7,
     fontFamily: "Helvetica-Bold",
     textAlign: "center",
-    marginBottom: 40,
+    marginBottom: 8,
   },
   signatureName: {
     fontSize: 7,
@@ -153,17 +188,25 @@ const EquipmentGrid = ({ items }: { items: string[] }) => {
 };
 
 // ── Tanda tangan ─────────────────────────────────────────────────────────────
-const SopSignatures = ({ permit }: { permit: Permit }) => (
+const SopSignatures = ({
+  permit,
+  qrCodes,
+}: {
+  permit: Permit;
+  qrCodes?: SignatureQrCodes;
+}) => (
   <View style={s.signatureSection}>
     <View style={s.signatureBox}>
       <Text style={s.signatureTitle}>
         {"Disusun Oleh,\nPenanggung Jawab Teknik"}
       </Text>
+      <SignatureQr qrDataUrl={qrCodes?.pjTeknik} />
       <Text style={s.signatureName}>{permit.pjTeknik?.nama}</Text>
       <Text style={s.signatureNote}>Telah disetujui secara digital</Text>
     </View>
     <View style={s.signatureBox}>
       <Text style={s.signatureTitle}>{"Diperiksa Oleh,\nTenaga Ahli K3"}</Text>
+      <SignatureQr qrDataUrl={qrCodes?.tenagaAhliK3} />
       <Text style={s.signatureName}>{permit.tenagaAhliK3?.nama}</Text>
       <Text style={s.signatureNote}>Telah disetujui secara digital</Text>
     </View>
@@ -171,6 +214,7 @@ const SopSignatures = ({ permit }: { permit: Permit }) => (
       <Text style={s.signatureTitle}>{"Disetujui Oleh,\nDirektur"}</Text>
       {permit.status === "approved_director" ? (
         <>
+          <SignatureQr qrDataUrl={qrCodes?.direktur} />
           <Text style={s.signatureName}>BILAL YURINATA</Text>
           <Text style={s.signatureNote}>Telah disetujui secara digital</Text>
         </>
@@ -184,7 +228,13 @@ const SopSignatures = ({ permit }: { permit: Permit }) => (
 );
 
 // ── Main PDF Page ─────────────────────────────────────────────────────────────
-export const SopPage = ({ permit }: { permit: Permit }) => {
+export const SopPage = ({
+  permit,
+  qrCodes,
+}: {
+  permit: Permit;
+  qrCodes?: SignatureQrCodes;
+}) => {
   const sopDocs = Array.isArray(permit.sopData) ? permit.sopData : [];
 
   return (
@@ -290,7 +340,7 @@ export const SopPage = ({ permit }: { permit: Permit }) => {
         ))
       )}
 
-      <SopSignatures permit={permit} />
+      <SopSignatures permit={permit} qrCodes={qrCodes} />
     </Page>
   );
 };

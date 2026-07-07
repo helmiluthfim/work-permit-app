@@ -30,6 +30,7 @@ export default function WorkPermitPrintPage() {
       try {
         const res = await fetch(`/api/work-permits/${id}`, {
           credentials: "include",
+          cache: "no-store", // Pastikan tidak menggunakan cache
         });
 
         if (!res.ok) {

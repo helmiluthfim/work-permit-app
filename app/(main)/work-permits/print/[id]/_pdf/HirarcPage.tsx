@@ -2,9 +2,32 @@
 // PDF HALAMAN: HIRARC (PERBAIKAN HEADER TABEL)
 // ==========================================
 
-import { Page, View, Text, StyleSheet } from "@react-pdf/renderer";
+import { Page, View, Text, Image, StyleSheet } from "@react-pdf/renderer";
 import { Permit } from "../_lib/types";
 import { formatTanggal } from "../_lib/utils";
+import type { SignatureQrCodes } from "../_lib/qrcode";
+
+const SignatureQr = ({ qrDataUrl }: { qrDataUrl?: string | null }) => {
+  if (!qrDataUrl || qrDataUrl.trim() === "") return null;
+
+  let formattedSrc = qrDataUrl;
+  if (formattedSrc.startsWith("ey") || !formattedSrc.startsWith("data:")) {
+    formattedSrc = `data:image/png;base64,${formattedSrc}`;
+  }
+
+  return (
+    <View style={{ alignSelf: "center", alignItems: "center" }}>
+      <Image
+        src={formattedSrc}
+        style={{
+          width: 55,
+          height: 55,
+          alignSelf: "center",
+        }}
+      />
+    </View>
+  );
+};
 
 const s = StyleSheet.create({
   page: {
@@ -318,17 +341,25 @@ const RISK_MATRIX = [
   { kemungkinan: "E", cols: ["L", "L", "M", "H", "H"] },
 ];
 
-const HirarcSignatures = ({ permit }: { permit: Permit }) => (
+const HirarcSignatures = ({
+  permit,
+  qrCodes,
+}: {
+  permit: Permit;
+  qrCodes?: SignatureQrCodes;
+}) => (
   <View style={s.signatureSection}>
     <View style={s.signatureBox}>
       <Text style={s.signatureTitle}>
         {"Disusun Oleh,\nPenanggung Jawab Teknik"}
       </Text>
+      <SignatureQr qrDataUrl={qrCodes?.pjTeknik} />
       <Text style={s.signatureName}>{permit.pjTeknik?.nama}</Text>
       <Text style={s.signatureNote}>Telah disetujui secara digital</Text>
     </View>
     <View style={s.signatureBox}>
       <Text style={s.signatureTitle}>{"Diperiksa Oleh,\nTenaga Ahli K3"}</Text>
+      <SignatureQr qrDataUrl={qrCodes?.tenagaAhliK3} />
       <Text style={s.signatureName}>{permit.tenagaAhliK3?.nama}</Text>
       <Text style={s.signatureNote}>Telah disetujui secara digital</Text>
     </View>
@@ -336,6 +367,7 @@ const HirarcSignatures = ({ permit }: { permit: Permit }) => (
       <Text style={s.signatureTitle}>{"Disetujui Oleh,\nDirektur"}</Text>
       {permit.status === "approved_director" ? (
         <>
+          <SignatureQr qrDataUrl={qrCodes?.direktur} />
           <Text style={s.signatureName}>BILAL YURINATA</Text>
           <Text style={s.signatureNote}>Telah disetujui secara digital</Text>
         </>
@@ -348,7 +380,13 @@ const HirarcSignatures = ({ permit }: { permit: Permit }) => (
   </View>
 );
 
-export const HirarcPage = ({ permit }: { permit: Permit }) => {
+export const HirarcPage = ({
+  permit,
+  qrCodes,
+}: {
+  permit: Permit;
+  qrCodes?: SignatureQrCodes;
+}) => {
   const h = permit.hirarcData;
   const rows = h?.potensiBahaya ?? [];
 
@@ -649,7 +687,7 @@ export const HirarcPage = ({ permit }: { permit: Permit }) => {
         </View>
       </View>
 
-      <HirarcSignatures permit={permit} />
+      <HirarcSignatures permit={permit} qrCodes={qrCodes} />
     </Page>
   );
 };

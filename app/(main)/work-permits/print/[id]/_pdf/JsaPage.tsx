@@ -2,18 +2,50 @@
 // PDF HALAMAN 2: JOB SAFETY ANALYSIS (JSA)
 // ==========================================
 
-import { Page, View, Text } from "@react-pdf/renderer";
+import { Page, View, Text, Image } from "@react-pdf/renderer";
 import { styles } from "../_lib/pdfStyles";
 import { Permit } from "../_lib/types";
 import { formatTanggal, getPelaksanaList } from "../_lib/utils";
+import type { SignatureQrCodes } from "../_lib/qrcode";
+
+const SignatureQr = ({ qrDataUrl }: { qrDataUrl?: string | null }) => {
+  if (!qrDataUrl || qrDataUrl.trim() === "") return null;
+
+  let formattedSrc = qrDataUrl;
+  if (formattedSrc.startsWith("ey") || !formattedSrc.startsWith("data:")) {
+    formattedSrc = `data:image/png;base64,${formattedSrc}`;
+  }
+
+  return (
+    <View style={{ alignSelf: "center", alignItems: "center" }}>
+      <Image
+        src={formattedSrc}
+        style={{
+          width: 55,
+          height: 55,
+          alignSelf: "center",
+          marginTop: 4,
+          marginBottom: 2,
+        }}
+      />
+    </View>
+  );
+};
 
 // ── Sub-komponen: Tanda tangan JSA ──
-const JsaSignatures = ({ permit }: { permit: Permit }) => (
+const JsaSignatures = ({
+  permit,
+  qrCodes,
+}: {
+  permit: Permit;
+  qrCodes?: SignatureQrCodes;
+}) => (
   <View style={styles.signatureSection}>
     <View style={styles.signatureBox}>
       <Text style={styles.signatureTitle}>
         Disusun Oleh,{"\n"}Penanggung Jawab Teknik
       </Text>
+      <SignatureQr qrDataUrl={qrCodes?.pjTeknik} />
       <Text style={styles.signatureName}>{permit.pjTeknik?.nama}</Text>
       <Text style={styles.signatureNote}>Telah disetujui secara digital</Text>
     </View>
@@ -21,6 +53,7 @@ const JsaSignatures = ({ permit }: { permit: Permit }) => (
       <Text style={styles.signatureTitle}>
         Diperiksa Oleh,{"\n"}Tenaga Ahli K3
       </Text>
+      <SignatureQr qrDataUrl={qrCodes?.tenagaAhliK3} />
       <Text style={styles.signatureName}>{permit.tenagaAhliK3?.nama}</Text>
       <Text style={styles.signatureNote}>Telah disetujui secara digital</Text>
     </View>
@@ -28,13 +61,17 @@ const JsaSignatures = ({ permit }: { permit: Permit }) => (
       <Text style={styles.signatureTitle}>Disetujui Oleh,{"\n"}Direktur</Text>
       {permit.status === "approved_director" ? (
         <>
-          <Text style={styles.signatureName}>BILAL YURINATA</Text>
+          <SignatureQr qrDataUrl={qrCodes?.direktur} />
+          <Text style={styles.signatureName}>
+            {permit.direktur?.nama ?? "-"}
+          </Text>
           <Text style={styles.signatureNote}>
             Telah disetujui secara digital
           </Text>
         </>
       ) : (
         <Text style={[styles.signatureNote, { color: "red" }]}>
+          {" "}
           (Belum Disahkan)
         </Text>
       )}
@@ -43,7 +80,13 @@ const JsaSignatures = ({ permit }: { permit: Permit }) => (
 );
 
 // ── Halaman PDF: JSA ──
-export const JsaPage = ({ permit }: { permit: Permit }) => {
+export const JsaPage = ({
+  permit,
+  qrCodes,
+}: {
+  permit: Permit;
+  qrCodes?: SignatureQrCodes;
+}) => {
   const pelaksanaList = getPelaksanaList(permit);
   const jsaDocs = permit.jsaData
     ? Array.isArray(permit.jsaData)
@@ -175,7 +218,7 @@ export const JsaPage = ({ permit }: { permit: Permit }) => {
         )}
       </View>
 
-      <JsaSignatures permit={permit} />
+      <JsaSignatures permit={permit} qrCodes={qrCodes} />
     </Page>
   );
 };

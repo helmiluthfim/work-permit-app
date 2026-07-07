@@ -10,6 +10,11 @@ export interface IUser extends Document {
   role: UserRole;
   createdAt: Date;
   updatedAt: Date;
+  signatures: {
+    PJ_TEKNIK?: string | null;
+    TENAGA_AHLI_K3?: string | null;
+    DIREKTUR?: string | null;
+  };
 }
 
 // 3. Buat Schema Mongoose berdasarkan interface IUser
@@ -30,6 +35,11 @@ const UserSchema = new Schema<IUser>(
       required: [true, "Role wajib ditentukan"],
       enum: ["PJ_TEKNIK", "TENAGA_AHLI_K3", "DIREKTUR"], // Validasi di tingkat Mongoose/Database
       default: "TENAGA_AHLI_K3",
+    },
+    signatures: {
+      PJ_TEKNIK: { type: String, default: null },
+      TENAGA_AHLI_K3: { type: String, default: null },
+      DIREKTUR: { type: String, default: null },
     },
   },
   {

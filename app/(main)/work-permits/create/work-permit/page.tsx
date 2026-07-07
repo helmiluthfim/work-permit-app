@@ -211,7 +211,24 @@ export default function TabWorkPermit() {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     if (errorMsg) setErrorMsg("");
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+
+    setFormData((prev: any) => {
+      const updated = { ...prev, [name]: value };
+
+      // ✅ Jika tanggal mulai diubah dan melewati tanggal selesai yang
+      // sudah dipilih sebelumnya, reset tanggal selesai agar user
+      // memilih ulang tanggal yang valid.
+      if (
+        name === "tanggalMulai" &&
+        prev.tanggalSelesai &&
+        value > prev.tanggalSelesai
+      ) {
+        updated.tanggalSelesai = "";
+      }
+
+      return updated;
+    });
   };
 
   const handleNext = () => {
@@ -242,6 +259,22 @@ export default function TabWorkPermit() {
     ) {
       setErrorMsg(
         "Semua kolom bertanda (*) wajib diisi sebelum lanjut ke tab JSA.",
+      );
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    // ✅ Tanggal selesai tidak boleh sebelum tanggal mulai
+    if (tanggalSelesai < tanggalMulai) {
+      setErrorMsg("Tanggal selesai tidak boleh sebelum tanggal mulai.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    // ✅ Jika tanggalnya sama, jam selesai harus setelah jam mulai
+    if (tanggalSelesai === tanggalMulai && waktuSelesai <= waktuMulai) {
+      setErrorMsg(
+        "Jam selesai harus setelah jam mulai jika tanggal pelaksanaan sama.",
       );
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
@@ -406,6 +439,7 @@ export default function TabWorkPermit() {
                   name="tanggalSelesai"
                   value={formData.tanggalSelesai}
                   onChange={handleChange}
+                  min={formData.tanggalMulai || undefined}
                   className={`${inputClass} pl-9`}
                 />
               </div>
@@ -419,6 +453,12 @@ export default function TabWorkPermit() {
                   name="waktuSelesai"
                   value={formData.waktuSelesai}
                   onChange={handleChange}
+                  min={
+                    formData.tanggalSelesai &&
+                    formData.tanggalSelesai === formData.tanggalMulai
+                      ? formData.waktuMulai || undefined
+                      : undefined
+                  }
                   className={`${inputClass} pl-9 w-32`}
                 />
               </div>
