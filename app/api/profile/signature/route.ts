@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
 
     if (file.size > MAX_SIZE) {
       return NextResponse.json(
-        { error: "Ukuran file maksimal 5MB" }, // Pesan error disesuaikan
+        { error: "Ukuran file maksimal 5MB" },
         { status: 400 },
       );
     }
@@ -87,7 +87,10 @@ export async function POST(req: NextRequest) {
 
     const oldUrl = existing?.signatures?.[role];
     if (oldUrl) {
-      await del(oldUrl).catch(() => null); // abaikan jika gagal
+      // PENAMBAHAN TOKEN DI SINI
+      await del(oldUrl, { token: process.env.BLOB_READ_WRITE_TOKEN }).catch(
+        () => null,
+      );
     }
 
     // Ambil ekstensi yang sesuai
@@ -98,9 +101,11 @@ export async function POST(req: NextRequest) {
     // Path menyertakan nama role supaya jelas TTD ini milik role apa
     const pathname = `signatures/${role}/${session.user.id}-${Date.now()}.${ext}`;
 
+    // PENAMBAHAN TOKEN DI SINI
     const blob = await put(pathname, file, {
       access: "public",
       contentType: file.type,
+      token: process.env.BLOB_READ_WRITE_TOKEN,
     });
 
     // TODO: pastikan schema Mongoose User punya field bertipe object per role, contoh:
@@ -137,7 +142,10 @@ export async function DELETE() {
 
     const oldUrl = existing?.signatures?.[role];
     if (oldUrl) {
-      await del(oldUrl).catch(() => null);
+      // PENAMBAHAN TOKEN DI SINI
+      await del(oldUrl, { token: process.env.BLOB_READ_WRITE_TOKEN }).catch(
+        () => null,
+      );
     }
 
     await User.findByIdAndUpdate(session.user.id, {
