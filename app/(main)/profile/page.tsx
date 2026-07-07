@@ -58,13 +58,14 @@ export default function ProfilePage() {
     const selected = e.target.files?.[0];
     if (!selected) return;
 
-    const allowedTypes = ["image/png", "image/jpeg"];
+    const allowedTypes = ["image/png", "image/jpeg", "image/webp"];
     if (!allowedTypes.includes(selected.type)) {
-      setError("Format file harus PNG atau JPG");
+      setError("Format file harus PNG, JPG, atau WEBP");
       return;
     }
-    if (selected.size > 2 * 1024 * 1024) {
-      setError("Ukuran file maksimal 2MB");
+    if (selected.size > 5 * 1024 * 1024) {
+      // Ubah jadi 5 * 1024 * 1024
+      setError("Ukuran file maksimal 5MB");
       return;
     }
 

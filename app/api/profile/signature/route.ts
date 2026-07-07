@@ -4,13 +4,16 @@ import { put, del } from "@vercel/blob";
 
 // TODO: sesuaikan tiga import di bawah ini dengan lokasi authOptions,
 // helper koneksi MongoDB, dan model User pada proyek Anda.
-
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import { authOption } from "../../auth/[...nextauth]/route";
 
-const ALLOWED_TYPES = ["image/png", "image/jpeg"];
-const MAX_SIZE = 2 * 1024 * 1024; // 2MB
+// PENYESUAIAN: Tambah image/webp karena beberapa HP modern menggunakan format ini
+const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp"];
+
+// PENYESUAIAN: Naikkan batas maksimal menjadi 5MB (5 * 1024 * 1024)
+// Karena foto langsung dari kamera HP biasanya berukuran di atas 2MB.
+const MAX_SIZE = 5 * 1024 * 1024;
 
 // Role yang valid — harus sama persis dengan yang dipakai di AppSidebar / session.user.role
 const VALID_ROLES = ["PJ_TEKNIK", "TENAGA_AHLI_K3", "DIREKTUR"] as const;
@@ -63,14 +66,14 @@ export async function POST(req: NextRequest) {
 
     if (!ALLOWED_TYPES.includes(file.type)) {
       return NextResponse.json(
-        { error: "Format file harus PNG atau JPG" },
+        { error: "Format file harus PNG, JPG, atau WEBP" },
         { status: 400 },
       );
     }
 
     if (file.size > MAX_SIZE) {
       return NextResponse.json(
-        { error: "Ukuran file maksimal 2MB" },
+        { error: "Ukuran file maksimal 5MB" }, // Pesan error disesuaikan
         { status: 400 },
       );
     }
@@ -87,7 +90,11 @@ export async function POST(req: NextRequest) {
       await del(oldUrl).catch(() => null); // abaikan jika gagal
     }
 
-    const ext = file.type === "image/png" ? "png" : "jpg";
+    // Ambil ekstensi yang sesuai
+    let ext = "jpg";
+    if (file.type === "image/png") ext = "png";
+    if (file.type === "image/webp") ext = "webp";
+
     // Path menyertakan nama role supaya jelas TTD ini milik role apa
     const pathname = `signatures/${role}/${session.user.id}-${Date.now()}.${ext}`;
 
