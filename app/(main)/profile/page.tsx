@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   AlertCircle,
   PenTool,
+  Camera, // Tambahan ikon Camera
 } from "lucide-react";
 
 const roleLabel: Record<string, string> = {
@@ -31,6 +32,7 @@ export default function ProfilePage() {
   const [success, setSuccess] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null); // Ref tambahan untuk input kamera
 
   useEffect(() => {
     fetchSignature();
@@ -93,8 +95,11 @@ export default function ProfilePage() {
       setSignatureUrl(data.signatureUrl);
       setFile(null);
       setPreview(null);
-      setSuccess("Tanda tangan berhasil diunggah");
+      setSuccess("Tanda tangan berhasil disimpan");
+
+      // Reset kedua input
       if (fileInputRef.current) fileInputRef.current.value = "";
+      if (cameraInputRef.current) cameraInputRef.current.value = "";
     } catch (err) {
       setError(err instanceof Error ? err.message : "Terjadi kesalahan");
     } finally {
@@ -125,7 +130,10 @@ export default function ProfilePage() {
     setFile(null);
     setPreview(null);
     setError(null);
+
+    // Reset kedua input
     if (fileInputRef.current) fileInputRef.current.value = "";
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
   }
 
   const username =
@@ -227,6 +235,7 @@ export default function ProfilePage() {
               </div>
             )}
 
+            {/* Input untuk File Upload Biasa */}
             <input
               ref={fileInputRef}
               type="file"
@@ -234,6 +243,17 @@ export default function ProfilePage() {
               onChange={handleFileChange}
               className="hidden"
               id="signature-input"
+            />
+
+            {/* Input Khusus untuk Capture Kamera (Mobile) */}
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/png,image/jpeg"
+              capture="environment" // Ini yang memicu kamera terbuka otomatis di HP
+              onChange={handleFileChange}
+              className="hidden"
+              id="camera-input"
             />
 
             {preview ? (
@@ -248,7 +268,7 @@ export default function ProfilePage() {
                   ) : (
                     <Upload size={15} />
                   )}
-                  {uploading ? "Mengunggah..." : "Simpan Tanda Tangan"}
+                  {uploading ? "Menyimpan..." : "Simpan Tanda Tangan"}
                 </button>
                 <button
                   onClick={cancelPreview}
@@ -259,19 +279,31 @@ export default function ProfilePage() {
                 </button>
               </div>
             ) : (
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
+                {/* Tombol Pilih File */}
                 <label
                   htmlFor="signature-input"
-                  className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg bg-[#0F1F3D] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#0F1F3D]/90"
+                  className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg bg-[#0F1F3D] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#0F1F3D]/90 min-w-[140px]"
                 >
                   <Upload size={15} />
-                  {signatureUrl ? "Ganti Tanda Tangan" : "Unggah Tanda Tangan"}
+                  Unggah File
                 </label>
+
+                {/* Tombol Ambil Foto */}
+                <label
+                  htmlFor="camera-input"
+                  className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg bg-[#0F1F3D] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#0F1F3D]/90 min-w-[140px]"
+                >
+                  <Camera size={15} />
+                  Ambil Foto
+                </label>
+
+                {/* Tombol Hapus */}
                 {signatureUrl && (
                   <button
                     onClick={handleDelete}
                     disabled={deleting}
-                    className="flex items-center justify-center gap-2 rounded-lg border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-500 hover:bg-red-50 disabled:opacity-60"
+                    className="flex shrink-0 items-center justify-center gap-2 rounded-lg border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-500 hover:bg-red-50 disabled:opacity-60"
                   >
                     {deleting ? (
                       <Loader2 size={15} className="animate-spin" />
