@@ -98,7 +98,7 @@ export default function WorkPermitReviewPage() {
       case "approved_director":
         return (
           <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-700">
-            <CheckCheck size={12} /> Disetujui
+            <CheckCheck size={12} /> Accepted
           </span>
         );
       case "approved_k3":
@@ -110,7 +110,7 @@ export default function WorkPermitReviewPage() {
       case "rejected":
         return (
           <span className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-red-700">
-            <XCircle size={12} /> Ditolak
+            <XCircle size={12} /> Rejected
           </span>
         );
       case "submitted":
@@ -178,7 +178,7 @@ export default function WorkPermitReviewPage() {
             { id: "all", label: "Semua Pengajuan" },
             { id: "review_k3", label: "Menunggu K3" },
             { id: "review_direktur", label: "Menunggu Direktur" },
-            { id: "selesai", label: "Selesai (Setuju/Tolak)" },
+            { id: "selesai", label: "Selesai (Accepted/Rejected)" },
           ].map((tab) => (
             <button
               key={tab.id}

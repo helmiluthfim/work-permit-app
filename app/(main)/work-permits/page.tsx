@@ -116,7 +116,7 @@ export default function WorkPermitHistoryPage() {
       case "approved_director":
         return (
           <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-700">
-            <CheckCheck size={12} /> Selesai / Disetujui
+            <CheckCheck size={12} /> Accepted
           </span>
         );
       case "approved_k3":
@@ -128,13 +128,13 @@ export default function WorkPermitHistoryPage() {
       case "submitted":
         return (
           <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-amber-700">
-            <Clock size={12} /> Menunggu Review K3
+            <Clock size={12} /> Pending / Menunggu Review K3
           </span>
         );
       case "rejected":
         return (
           <span className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-red-700">
-            <XCircle size={12} /> Ditolak
+            <XCircle size={12} /> Rejected
           </span>
         );
       case "draft":
@@ -197,9 +197,9 @@ export default function WorkPermitHistoryPage() {
         <div className="flex overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 shadow-sm scrollbar-hide">
           {[
             { id: "all", label: "Semua" },
-            { id: "proses", label: "Dalam Proses" },
-            { id: "disetujui", label: "Disetujui" },
-            { id: "ditolak", label: "Ditolak / Draft" },
+            { id: "proses", label: "Pending" },
+            { id: "disetujui", label: "Accepted" },
+            { id: "ditolak", label: "Rejected / Draft" },
           ].map((tab) => (
             <button
               key={tab.id}
