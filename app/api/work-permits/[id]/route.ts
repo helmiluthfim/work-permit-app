@@ -141,16 +141,42 @@ export async function PATCH(
       );
     }
 
-    const updateData: any = { status };
+    // ✅ 1. Ekstrak informasi user dari session untuk dicatat dalam History
+    const userSession = session.user as any;
+    const actionByName =
+      userSession?.nama ||
+      userSession?.name ||
+      userSession?.username ||
+      "Sistem";
+    const actionByRole = userSession?.role || "UNKNOWN";
+
+    // ✅ 2. Siapkan Data History Baru
+    const newHistoryRecord = {
+      status: status,
+      actionBy: {
+        nama: actionByName,
+        role: actionByRole,
+      },
+      catatan: status === "rejected" ? catatanPenolakan || "" : "",
+      createdAt: new Date(),
+    };
+
+    // ✅ 3. Gunakan $set untuk field biasa, dan $push untuk array history
+    const updateQuery: any = {
+      $set: { status },
+      $push: { history: newHistoryRecord }, // Memasukkan history baru ke dalam array
+    };
+
     if (status === "rejected" && catatanPenolakan) {
-      updateData.catatanPenolakan = catatanPenolakan;
+      updateQuery.$set.catatanPenolakan = catatanPenolakan;
     } else if (status.includes("approved")) {
-      updateData.catatanPenolakan = "";
+      updateQuery.$set.catatanPenolakan = "";
     }
 
+    // ✅ 4. Update Database
     const updatedWorkPermit = await WorkPermit.findByIdAndUpdate(
       id,
-      updateData,
+      updateQuery,
       { returnDocument: "after", runValidators: true },
     );
 

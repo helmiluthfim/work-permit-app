@@ -22,6 +22,7 @@ import {
   CheckCheck,
   Download,
   Copy,
+  History, // ✅ Tambahan icon untuk riwayat
 } from "lucide-react";
 
 // Helper Component: Menampilkan List Array
@@ -248,28 +249,14 @@ export default function WorkPermitDetailPage() {
     );
   }
 
-  // ─── AMAN-KAN EKSTRAKSI ARRAY DATA (Penyebab data sebelumnya tidak muncul) ───
-  const extractArray = (dataField: any) => {
-    if (!dataField) return [];
-    if (Array.isArray(dataField)) return dataField;
-    // Cek jika dibungkus property tertentu sesuai skema backend yang mungkin bervariasi
-    if (Array.isArray(dataField.jsaTemplate)) return dataField.jsaTemplate;
-    if (Array.isArray(dataField.sopTemplate)) return dataField.sopTemplate;
-    if (Array.isArray(dataField.ikTemplate)) return dataField.ikTemplate;
-    if (Array.isArray(dataField.documents)) return dataField.documents;
-    if (Array.isArray(dataField.data)) return dataField.data;
-
-    // Fallback jika masih format object 1 dimensi (lama)
-    return [dataField];
-  };
-
-  // ✅ Semua sudah array langsung dari DB
+  // ✅ Ekstrak array langsung dari DB
   const jsaDocs = Array.isArray(permit.jsaData) ? permit.jsaData : [];
   const sopDocs = Array.isArray(permit.sopData) ? permit.sopData : [];
   const ikDocs = Array.isArray(permit.ikData) ? permit.ikData : [];
-
-  // ✅ Pelaksana dari root
   const pelaksanaList = permit.pelaksana || [];
+
+  // ✅ Ekstrak Riwayat Persetujuan
+  const historyList = permit.history || [];
 
   return (
     <div className="relative min-h-full w-full bg-[#F7F8FA] p-6 md:p-8">
@@ -531,6 +518,82 @@ export default function WorkPermitDetailPage() {
                 {permit.catatanPenolakan}
               </p>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── RIWAYAT PERSETUJUAN (TIMELINE) ── */}
+      {historyList.length > 0 && (
+        <div className="mb-8 rounded-2xl border border-slate-200 bg-white p-5 md:p-6 shadow-sm">
+          <h3 className="mb-6 flex items-center gap-2 text-sm font-black text-[#0F1F3D]">
+            <History size={18} className="text-blue-600" /> Riwayat Status &
+            Persetujuan
+          </h3>
+          <div className="relative ml-3 space-y-6 border-l-2 border-slate-100">
+            {historyList.map((log: any, idx: number) => {
+              const isApproval = log.status.includes("approved");
+              const isRejection = log.status === "rejected";
+
+              // Fungsi untuk memformat role menjadi lebih enak dibaca
+              const formatRole = (role: string) => {
+                if (role === "TENAGA_AHLI_K3") return "Tenaga Ahli K3";
+                if (role === "DIREKTUR") return "Direktur";
+                if (role === "PJ_TEKNIK") return "Penanggung Jawab Teknik";
+                if (!role) return "Sistem";
+                // Fallback jika ada role lain
+                return role
+                  .replace(/_/g, " ")
+                  .replace(/\b\w/g, (l) => l.toUpperCase());
+              };
+
+              return (
+                <div key={idx} className="relative pl-6">
+                  {/* Timeline Dot */}
+                  <span
+                    className={`absolute -left-[11px] top-0.5 flex h-5 w-5 items-center justify-center rounded-full ring-4 ring-white ${
+                      isApproval
+                        ? "bg-emerald-100 text-emerald-600"
+                        : isRejection
+                          ? "bg-red-100 text-red-600"
+                          : "bg-blue-100 text-blue-600"
+                    }`}
+                  >
+                    {isApproval ? (
+                      <CheckCircle2 size={12} />
+                    ) : isRejection ? (
+                      <XCircle size={12} />
+                    ) : (
+                      <Clock size={12} />
+                    )}
+                  </span>
+
+                  {/* Content */}
+                  <div>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                      <p className="text-sm font-bold text-[#0F1F3D] capitalize">
+                        {log.status.replace("_", " ")}
+                      </p>
+                      <p className="text-xs font-semibold text-slate-400">
+                        {new Date(log.createdAt).toLocaleString("id-ID")}
+                      </p>
+                    </div>
+                    {log.actionBy && (
+                      <p className="mt-1 text-xs text-slate-500">
+                        Oleh:{" "}
+                        <span className="font-medium text-slate-500">
+                          {formatRole(log.actionBy.role)}
+                        </span>
+                      </p>
+                    )}
+                    {log.catatan && (
+                      <p className="mt-2 rounded-lg bg-slate-50 p-2 text-xs italic text-slate-600 border border-slate-100">
+                        "{log.catatan}"
+                      </p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

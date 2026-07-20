@@ -25,6 +25,16 @@ export interface IWorkPermit extends Document {
     | "rejected";
   catatanPenolakan?: string;
 
+  history: {
+    status: string;
+    actionBy: {
+      nama: string;
+      role: string;
+    };
+    catatan?: string;
+    createdAt: Date;
+  }[];
+
   workPermitData: {
     klasifikasiPekerjaan: string[];
     prosedurPekerjaan: string[];
@@ -107,6 +117,17 @@ const WorkPermitSchema = new Schema<IWorkPermit>(
 
     status: { type: String, default: "submitted" },
     catatanPenolakan: { type: String, default: "" },
+    history: [
+      {
+        status: { type: String, required: true },
+        actionBy: {
+          nama: { type: String, required: true },
+          role: { type: String, required: true },
+        },
+        catatan: { type: String, default: "" },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
 
     workPermitData: {
       klasifikasiPekerjaan: [String],
