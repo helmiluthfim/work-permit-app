@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { put, del } from "@vercel/blob";
+import {
+  S3Client,
+  PutObjectCommand,
+  DeleteObjectCommand,
+} from "@aws-sdk/client-s3";
 
 // TODO: sesuaikan tiga import di bawah ini dengan lokasi authOptions,
 // helper koneksi MongoDB, dan model User pada proyek Anda.
@@ -8,14 +12,40 @@ import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import { authOption } from "../../auth/[...nextauth]/route";
 
-// PENYESUAIAN: Tambah image/webp karena beberapa HP modern menggunakan format ini
+// Konfigurasi Cloudflare R2 S3 Client
+const s3Client = new S3Client({
+  region: "auto",
+  endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+  credentials: {
+    accessKeyId: process.env.R2_ACCESS_KEY_ID as string,
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY as string,
+  },
+});
+
+const BUCKET_NAME = process.env.R2_BUCKET_NAME as string;
+
+// PERBAIKAN: Bersihkan PUBLIC_URL agar tidak ada garis miring (/) di akhir
+const rawPublicUrl = (process.env.R2_PUBLIC_URL || "").trim();
+const PUBLIC_URL = rawPublicUrl.endsWith("/")
+  ? rawPublicUrl.slice(0, -1)
+  : rawPublicUrl;
+
+// Helper untuk mengekstrak object key (path) dari URL publik R2
+function getKeyFromUrl(url: string) {
+  try {
+    const urlObj = new URL(url);
+    // Menghapus slash '/' di awal pathname agar menjadi key yang valid di R2
+    return urlObj.pathname.startsWith("/")
+      ? urlObj.pathname.slice(1)
+      : urlObj.pathname;
+  } catch (error) {
+    return null;
+  }
+}
+
 const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp"];
+const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 
-// PENYESUAIAN: Naikkan batas maksimal menjadi 5MB (5 * 1024 * 1024)
-// Karena foto langsung dari kamera HP biasanya berukuran di atas 2MB.
-const MAX_SIZE = 5 * 1024 * 1024;
-
-// Role yang valid — harus sama persis dengan yang dipakai di AppSidebar / session.user.role
 const VALID_ROLES = ["PJ_TEKNIK", "TENAGA_AHLI_K3", "DIREKTUR"] as const;
 type Role = (typeof VALID_ROLES)[number];
 
@@ -53,6 +83,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // PERBAIKAN: Cek apakah PUBLIC_URL sudah diset di .env
+  if (!PUBLIC_URL) {
+    return NextResponse.json(
+      { error: "Konfigurasi R2_PUBLIC_URL belum diatur di server (.env)" },
+      { status: 500 },
+    );
+  }
+
   try {
     const formData = await req.formData();
     const file = formData.get("file");
@@ -80,17 +118,24 @@ export async function POST(req: NextRequest) {
 
     await connectDB();
 
-    // Hapus tanda tangan lama milik role ini saja (role lain tidak disentuh)
+    // Hapus tanda tangan lama milik role ini jika ada
     const existing = await User.findById(session.user.id)
       .select("signatures")
       .lean<{ signatures?: Record<Role, string | null> }>();
 
     const oldUrl = existing?.signatures?.[role];
     if (oldUrl) {
-      // PENAMBAHAN TOKEN DI SINI
-      await del(oldUrl, { token: process.env.BLOB_READ_WRITE_TOKEN }).catch(
-        () => null,
-      );
+      const oldKey = getKeyFromUrl(oldUrl);
+      if (oldKey) {
+        await s3Client
+          .send(
+            new DeleteObjectCommand({
+              Bucket: BUCKET_NAME,
+              Key: oldKey,
+            }),
+          )
+          .catch(() => null); // Abaikan error jika file tidak ada di R2
+      }
     }
 
     // Ambil ekstensi yang sesuai
@@ -98,23 +143,30 @@ export async function POST(req: NextRequest) {
     if (file.type === "image/png") ext = "png";
     if (file.type === "image/webp") ext = "webp";
 
-    // Path menyertakan nama role supaya jelas TTD ini milik role apa
     const pathname = `signatures/${role}/${session.user.id}-${Date.now()}.${ext}`;
 
-    // PENAMBAHAN TOKEN DI SINI
-    const blob = await put(pathname, file, {
-      access: "public",
-      contentType: file.type,
-      token: process.env.BLOB_READ_WRITE_TOKEN,
-    });
+    // Ubah File menjadi Buffer untuk diunggah ke R2
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
 
-    // TODO: pastikan schema Mongoose User punya field bertipe object per role, contoh:
-    // signatures: { PJ_TEKNIK: String, TENAGA_AHLI_K3: String, DIREKTUR: String }
+    // Unggah ke Cloudflare R2
+    await s3Client.send(
+      new PutObjectCommand({
+        Bucket: BUCKET_NAME,
+        Key: pathname,
+        Body: buffer,
+        ContentType: file.type,
+      }),
+    );
+
+    // Buat public URL berdasarkan domain R2 Anda (sudah aman dari double-slash)
+    const fileUrl = `${PUBLIC_URL}/${pathname}`;
+
     await User.findByIdAndUpdate(session.user.id, {
-      $set: { [`signatures.${role}`]: blob.url },
+      $set: { [`signatures.${role}`]: fileUrl },
     });
 
-    return NextResponse.json({ signatureUrl: blob.url, role });
+    return NextResponse.json({ signatureUrl: fileUrl, role });
   } catch (err) {
     console.error("Gagal mengunggah tanda tangan:", err);
     return NextResponse.json(
@@ -142,10 +194,18 @@ export async function DELETE() {
 
     const oldUrl = existing?.signatures?.[role];
     if (oldUrl) {
-      // PENAMBAHAN TOKEN DI SINI
-      await del(oldUrl, { token: process.env.BLOB_READ_WRITE_TOKEN }).catch(
-        () => null,
-      );
+      const oldKey = getKeyFromUrl(oldUrl);
+      if (oldKey) {
+        // Hapus dari R2
+        await s3Client
+          .send(
+            new DeleteObjectCommand({
+              Bucket: BUCKET_NAME,
+              Key: oldKey,
+            }),
+          )
+          .catch(() => null);
+      }
     }
 
     await User.findByIdAndUpdate(session.user.id, {

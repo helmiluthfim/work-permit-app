@@ -9,7 +9,7 @@ import {
   CheckCircle2,
   AlertCircle,
   PenTool,
-  Camera, // Tambahan ikon Camera
+  Camera,
 } from "lucide-react";
 
 const roleLabel: Record<string, string> = {
@@ -32,7 +32,7 @@ export default function ProfilePage() {
   const [success, setSuccess] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null); // Ref tambahan untuk input kamera
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchSignature();
@@ -63,8 +63,9 @@ export default function ProfilePage() {
       setError("Format file harus PNG, JPG, atau WEBP");
       return;
     }
+
+    // Validasi 5MB
     if (selected.size > 5 * 1024 * 1024) {
-      // Ubah jadi 5 * 1024 * 1024
       setError("Ukuran file maksimal 5MB");
       return;
     }
@@ -240,7 +241,7 @@ export default function ProfilePage() {
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/png,image/jpeg"
+              accept="image/png,image/jpeg,image/webp" // PERBAIKAN: Tambah image/webp
               onChange={handleFileChange}
               className="hidden"
               id="signature-input"
@@ -250,8 +251,8 @@ export default function ProfilePage() {
             <input
               ref={cameraInputRef}
               type="file"
-              accept="image/png,image/jpeg"
-              capture="environment" // Ini yang memicu kamera terbuka otomatis di HP
+              accept="image/png,image/jpeg,image/webp" // PERBAIKAN: Tambah image/webp
+              capture="environment"
               onChange={handleFileChange}
               className="hidden"
               id="camera-input"
@@ -315,9 +316,11 @@ export default function ProfilePage() {
                 )}
               </div>
             )}
+
+            {/* PERBAIKAN: Ubah keterangan teks agar sinkron dengan batasan 5MB dan format WEBP */}
             <p className="mt-2 text-[11px] text-slate-400">
-              Format PNG atau JPG, ukuran maksimal 2MB. Gunakan gambar tanda
-              tangan dengan latar belakang transparan atau putih.
+              Format PNG, JPG, atau WEBP. Ukuran maksimal 5MB. Gunakan gambar
+              tanda tangan dengan latar belakang transparan atau putih.
             </p>
           </>
         )}
