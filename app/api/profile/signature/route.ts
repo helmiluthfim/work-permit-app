@@ -23,12 +23,7 @@ const s3Client = new S3Client({
 });
 
 const BUCKET_NAME = process.env.R2_BUCKET_NAME as string;
-
-// PERBAIKAN: Bersihkan PUBLIC_URL agar tidak ada garis miring (/) di akhir
-const rawPublicUrl = (process.env.R2_PUBLIC_URL || "").trim();
-const PUBLIC_URL = rawPublicUrl.endsWith("/")
-  ? rawPublicUrl.slice(0, -1)
-  : rawPublicUrl;
+const PUBLIC_URL = process.env.R2_PUBLIC_URL as string;
 
 // Helper untuk mengekstrak object key (path) dari URL publik R2
 function getKeyFromUrl(url: string) {
@@ -81,14 +76,6 @@ export async function POST(req: NextRequest) {
 
   if (!session?.user?.id || !role) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  // PERBAIKAN: Cek apakah PUBLIC_URL sudah diset di .env
-  if (!PUBLIC_URL) {
-    return NextResponse.json(
-      { error: "Konfigurasi R2_PUBLIC_URL belum diatur di server (.env)" },
-      { status: 500 },
-    );
   }
 
   try {
@@ -159,7 +146,7 @@ export async function POST(req: NextRequest) {
       }),
     );
 
-    // Buat public URL berdasarkan domain R2 Anda (sudah aman dari double-slash)
+    // Buat public URL berdasarkan domain R2 Anda
     const fileUrl = `${PUBLIC_URL}/${pathname}`;
 
     await User.findByIdAndUpdate(session.user.id, {
