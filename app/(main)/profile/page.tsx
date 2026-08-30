@@ -18,6 +18,9 @@ const roleLabel: Record<string, string> = {
   DIREKTUR: "Direktur",
 };
 
+// Konstanta URL bawaan R2 Anda
+const R2_PUBLIC_URL = "https://pub-85cd6db2069b4d4693922d6d20b579e3.r2.dev";
+
 export default function ProfilePage() {
   const { data: session } = useSession();
 
@@ -43,7 +46,11 @@ export default function ProfilePage() {
       const res = await fetch("/api/profile/signature");
       if (res.ok) {
         const data = await res.json();
-        setSignatureUrl(data.signatureUrl);
+        if (data.signatureUrl) {
+          // Ganti URL R2 menjadi path proxy /cdn
+          const proxyUrl = data.signatureUrl.replace(R2_PUBLIC_URL, "/cdn");
+          setSignatureUrl(proxyUrl);
+        }
       }
     } catch {
       // biarkan, tampilkan state kosong
@@ -94,7 +101,10 @@ export default function ProfilePage() {
       if (!res.ok)
         throw new Error(data.error || "Gagal mengunggah tanda tangan");
 
-      setSignatureUrl(data.signatureUrl);
+      // Ganti URL R2 menjadi path proxy /cdn agar gambar langsung muncul
+      const proxyUrl = data.signatureUrl.replace(R2_PUBLIC_URL, "/cdn");
+      setSignatureUrl(proxyUrl);
+
       setFile(null);
       setPreview(null);
       setSuccess("Tanda tangan berhasil disimpan");
@@ -241,7 +251,7 @@ export default function ProfilePage() {
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/png,image/jpeg,image/webp" // PERBAIKAN: Tambah image/webp
+              accept="image/png,image/jpeg,image/webp"
               onChange={handleFileChange}
               className="hidden"
               id="signature-input"
@@ -251,7 +261,7 @@ export default function ProfilePage() {
             <input
               ref={cameraInputRef}
               type="file"
-              accept="image/png,image/jpeg,image/webp" // PERBAIKAN: Tambah image/webp
+              accept="image/png,image/jpeg,image/webp"
               capture="environment"
               onChange={handleFileChange}
               className="hidden"
@@ -317,7 +327,6 @@ export default function ProfilePage() {
               </div>
             )}
 
-            {/* PERBAIKAN: Ubah keterangan teks agar sinkron dengan batasan 5MB dan format WEBP */}
             <p className="mt-2 text-[11px] text-slate-400">
               Format PNG, JPG, atau WEBP. Ukuran maksimal 5MB. Gunakan gambar
               tanda tangan dengan latar belakang transparan atau putih.

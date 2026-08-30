@@ -65,8 +65,14 @@ export async function GET() {
     .select("signatures")
     .lean<{ signatures?: Record<Role, string | null> }>();
 
-  const signatureUrl = user?.signatures?.[role] ?? null;
-  return NextResponse.json({ signatureUrl, role });
+  const signatureKey = user?.signatures?.[role] ?? null;
+
+  const signatureUrl = signatureKey ? `/api/files/${signatureKey}` : null;
+
+  return NextResponse.json({
+    signatureUrl,
+    role,
+  });
 }
 
 // Unggah / ganti tanda tangan untuk role yang sedang login
@@ -147,13 +153,15 @@ export async function POST(req: NextRequest) {
     );
 
     // Buat public URL berdasarkan domain R2 Anda
-    const fileUrl = `${PUBLIC_URL}/${pathname}`;
+    const signatureKey = pathname;
 
     await User.findByIdAndUpdate(session.user.id, {
-      $set: { [`signatures.${role}`]: fileUrl },
+      $set: {
+        [`signatures.${role}`]: signatureKey,
+      },
     });
 
-    return NextResponse.json({ signatureUrl: fileUrl, role });
+    return NextResponse.json({ signatureUrl: signatureKey, role });
   } catch (err) {
     console.error("Gagal mengunggah tanda tangan:", err);
     return NextResponse.json(
