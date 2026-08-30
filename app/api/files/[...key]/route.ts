@@ -63,7 +63,7 @@ export async function GET(
 
     const body = await response.Body.transformToByteArray();
 
-    return new NextResponse(body, {
+    return new NextResponse(Buffer.from(body), {
       status: 200,
 
       headers: {
