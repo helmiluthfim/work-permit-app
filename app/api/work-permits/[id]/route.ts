@@ -2,24 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOption } from "@/app/api/auth/[...nextauth]/route";
 import { connectDB } from "@/lib/mongodb";
-import JobTemplate from "@/models/JobTemplate";
 import WorkPermit from "@/models/WorkPermit";
 import User from "@/models/User";
-import Personnel from "@/models/Personnel";
 import { createNotification } from "@/lib/createNotification";
 
 export const dynamic = "force-dynamic";
 
-// ========================================================
-// GET: MENGAMBIL DETAIL SATU WORK PERMIT (DIPERBAIKI TOTAL)
-// ========================================================
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     await connectDB();
-
     const resolvedParams = await params;
     const id = resolvedParams.id;
 
@@ -31,9 +25,6 @@ export async function GET(
       );
     }
 
-    // 1. Ambil data Work Permit HANYA mem-populate pekerjaan dan pelaksana.
-    // Kita sengaja TIDAK mem-populate pjTeknik & tenagaAhliK3 di sini
-    // untuk menghindari error relasi schema (ref).
     const workPermit = (await WorkPermit.findById(id)
       .populate({ path: "pekerjaan", select: "kodePekerjaan namaPekerjaan" })
       .populate({ path: "pelaksana", select: "nama jabatan" })
@@ -48,9 +39,35 @@ export async function GET(
       );
     }
 
-    // 2. Resolve tanda tangan digital berdasarkan role user yang relevan.
-    // WorkPermit.pjTeknik & tenagaAhliK3 merujuk ke dokumen Personnel,
-    // sehingga URL signature harus diambil dari User dengan role yang cocok.
+    // ✅ FETCH KTP DI SERVER (VERCEL) UNTUK MENGHINDARI BLOKIR ISP
+    if (workPermit.fileKtp) {
+      try {
+        // Ganti dengan URL R2 Public Anda (bisa pakai process.env.R2_PUBLIC_URL)
+        const R2_BASE_URL =
+          process.env.R2_PUBLIC_URL || "https://pub-xxxx.r2.dev";
+        const fileUrl = workPermit.fileKtp.startsWith("http")
+          ? workPermit.fileKtp
+          : `${R2_BASE_URL.replace(/\/$/, "")}/${workPermit.fileKtp.replace(/^\//, "")}`;
+
+        // Vercel server mengambil file dari R2
+        const response = await fetch(fileUrl);
+        if (response.ok) {
+          const arrayBuffer = await response.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
+          const base64 = buffer.toString("base64");
+          const mimeType = fileUrl.toLowerCase().endsWith(".pdf")
+            ? "application/pdf"
+            : "image/jpeg";
+
+          // Sisipkan base64 langsung ke dalam object data
+          workPermit.fileKtpBase64 = `data:${mimeType};base64,${base64}`;
+        }
+      } catch (err) {
+        console.error("Gagal convert KTP ke Base64 di server:", err);
+      }
+    }
+
+    // Resolve tanda tangan digital...
     const [pjTeknikUser, k3User] = await Promise.all([
       User.findOne({ role: "PJ_TEKNIK" })
         .select("username role signatures")
@@ -67,7 +84,6 @@ export async function GET(
         resolvedSignature: pjTeknikUser?.signatures?.PJ_TEKNIK ?? null,
       };
     }
-
     if (workPermit.tenagaAhliK3) {
       workPermit.tenagaAhliK3 = {
         ...(workPermit.tenagaAhliK3 as any),
@@ -76,16 +92,13 @@ export async function GET(
       };
     }
 
-    // 3. Cari data Direktur secara terpisah
     const direktur = await User.findOne({ role: "DIREKTUR" })
       .select("username signatures")
       .lean();
-
     if (direktur) {
       (direktur as any).resolvedSignature =
         (direktur as any).signatures?.DIREKTUR ?? null;
     }
-
     workPermit.direktur = direktur;
 
     return NextResponse.json(
@@ -95,10 +108,7 @@ export async function GET(
   } catch (error: any) {
     console.error("Error GET Detail WP:", error);
     return NextResponse.json(
-      {
-        success: false,
-        message: error.message || "Gagal mengambil detail data",
-      },
+      { success: false, message: error.message },
       { status: 500 },
     );
   }
@@ -164,7 +174,7 @@ export async function PATCH(
     // ✅ 3. Gunakan $set untuk field biasa, dan $push untuk array history
     const updateQuery: any = {
       $set: { status },
-      $push: { history: newHistoryRecord }, // Memasukkan history baru ke dalam array
+      $push: { history: newHistoryRecord },
     };
 
     if (status === "rejected" && catatanPenolakan) {
@@ -177,7 +187,7 @@ export async function PATCH(
     const updatedWorkPermit = await WorkPermit.findByIdAndUpdate(
       id,
       updateQuery,
-      { returnDocument: "after", runValidators: true },
+      { new: true, runValidators: true },
     );
 
     if (!updatedWorkPermit) {

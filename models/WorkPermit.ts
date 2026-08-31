@@ -14,6 +14,7 @@ export interface IWorkPermit extends Document {
   noTelpPjTeknik: string;
   tenagaAhliK3: mongoose.Types.ObjectId;
   noTelpTenagaAhliK3: string;
+  fileKtp?: string;
 
   createdBy: mongoose.Types.ObjectId;
 
@@ -108,7 +109,7 @@ const WorkPermitSchema = new Schema<IWorkPermit>(
       required: true,
     },
     noTelpTenagaAhliK3: { type: String, required: true },
-
+    fileKtp: { type: String },
     createdBy: {
       type: Schema.Types.ObjectId,
       ref: "User",

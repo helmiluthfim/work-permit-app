@@ -16,6 +16,7 @@ import {
   Phone,
   ChevronDown,
   Sparkles,
+  Upload,
 } from "lucide-react";
 import { WorkPermitFormContext } from "../layout";
 
@@ -151,7 +152,7 @@ export default function TabWorkPermit() {
       ),
       wpLampiran: arrayToText(selectedJob.workPermitTemplate?.lampiran),
 
-      // ✅ JSA — simpan SEMUA dokumen, bukan hanya [0]
+      // JSA
       jsaDocs: (selectedJob.jsaTemplate || []).map((jsa: any) => ({
         judulJsa: jsa.judulJsa || "",
         langkahKerja: arrayToText(jsa.langkahKerja),
@@ -159,7 +160,7 @@ export default function TabWorkPermit() {
         pengendalian: arrayToText(jsa.pengendalian),
       })),
 
-      // HIRARC — tetap sama
+      // HIRARC
       hirarcPotensi: arrayToText(selectedJob.hirarcTemplate?.potensiBahaya),
       hirarcResiko: arrayToText(selectedJob.hirarcTemplate?.resiko),
       hirarcKeparahan: arrayToText(
@@ -185,7 +186,7 @@ export default function TabWorkPermit() {
         selectedJob.hirarcTemplate?.penanggungJawab,
       ),
 
-      // ✅ SOP — simpan SEMUA dokumen
+      // SOP
       sopDocs: (selectedJob.sopTemplate || []).map((sop: any) => ({
         judulSop: sop.judulSop || "",
         perlengkapanKerja: arrayToText(sop.perlengkapanKerja),
@@ -195,7 +196,7 @@ export default function TabWorkPermit() {
         uraianKegiatan: arrayToText(sop.uraianKegiatan),
       })),
 
-      // ✅ IK — simpan SEMUA dokumen
+      // IK
       ikDocs: (selectedJob.ikTemplate || []).map((ik: any) => ({
         judulIk: ik.judulIk || "",
         perlengkapanKerja: arrayToText(ik.perlengkapanKerja),
@@ -216,9 +217,7 @@ export default function TabWorkPermit() {
     setFormData((prev: any) => {
       const updated = { ...prev, [name]: value };
 
-      // ✅ Jika tanggal mulai diubah dan melewati tanggal selesai yang
-      // sudah dipilih sebelumnya, reset tanggal selesai agar user
-      // memilih ulang tanggal yang valid.
+      // Reset tanggal selesai jika tanggal mulai diubah melebihi tanggal selesai
       if (
         name === "tanggalMulai" &&
         prev.tanggalSelesai &&
@@ -229,6 +228,25 @@ export default function TabWorkPermit() {
 
       return updated;
     });
+  };
+
+  // Fungsi khusus untuk menangani upload file (KTP)
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (errorMsg) setErrorMsg("");
+    const { name, files } = e.target;
+
+    if (files && files.length > 0) {
+      setFormData((prev: any) => ({
+        ...prev,
+        [name]: files[0], // Menyimpan object File ke dalam state
+      }));
+    } else {
+      setFormData((prev: any) => {
+        const updated = { ...prev };
+        delete updated[name];
+        return updated;
+      });
+    }
   };
 
   const handleNext = () => {
@@ -243,8 +261,10 @@ export default function TabWorkPermit() {
       noTelpPjTeknik,
       tenagaAhliK3,
       noTelpTenagaAhliK3,
+      fileKtp, // Validasi untuk file KTP
     } = formData;
 
+    // Validasi field wajib
     if (
       !pekerjaanId ||
       !lokasi ||
@@ -255,23 +275,22 @@ export default function TabWorkPermit() {
       !pjTeknik ||
       !noTelpPjTeknik ||
       !tenagaAhliK3 ||
-      !noTelpTenagaAhliK3
+      !noTelpTenagaAhliK3 ||
+      !fileKtp
     ) {
       setErrorMsg(
-        "Semua kolom bertanda (*) wajib diisi sebelum lanjut ke tab JSA.",
+        "Semua kolom bertanda (*) wajib diisi (termasuk dokumen KTP) sebelum lanjut ke tab JSA.",
       );
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
-    // ✅ Tanggal selesai tidak boleh sebelum tanggal mulai
     if (tanggalSelesai < tanggalMulai) {
       setErrorMsg("Tanggal selesai tidak boleh sebelum tanggal mulai.");
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
-    // ✅ Jika tanggalnya sama, jam selesai harus setelah jam mulai
     if (tanggalSelesai === tanggalMulai && waktuSelesai <= waktuMulai) {
       setErrorMsg(
         "Jam selesai harus setelah jam mulai jika tanggal pelaksanaan sama.",
@@ -566,6 +585,44 @@ export default function TabWorkPermit() {
                 />
               </div>
             </div>
+          </div>
+        </div>
+      </SectionCard>
+
+      {/* ── 5. DOKUMEN PENDUKUNG (Upload KTP) ── */}
+      <SectionCard title="Dokumen Pendukung" icon={Upload}>
+        <div className="space-y-4">
+          <div>
+            <FieldLabel required>
+              Upload KTP / Identitas Diri Pekerja
+            </FieldLabel>
+            <div className="relative mt-1">
+              <input
+                type="file"
+                name="fileKtp"
+                accept="image/*,application/pdf"
+                onChange={handleFileChange}
+                className="block w-full text-sm text-slate-500 file:mr-4 file:cursor-pointer file:rounded-xl file:border-0 file:bg-[#0F1F3D]/10 file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-[#0F1F3D] hover:file:bg-[#0F1F3D]/20 focus:outline-none"
+              />
+              <p className="mt-2 text-xs text-slate-400">
+                Format yang didukung: JPG, PNG, atau PDF (Maksimal 2MB)
+              </p>
+            </div>
+
+            {/* Indikator File Berhasil Dipilih */}
+            {formData.fileKtp && (
+              <div className="mt-3 flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-green-700">
+                <FileText size={18} />
+                <div className="flex flex-col">
+                  <span className="text-sm font-bold leading-none">
+                    File terpilih
+                  </span>
+                  <span className="mt-1 text-xs opacity-80">
+                    {formData.fileKtp.name}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </SectionCard>

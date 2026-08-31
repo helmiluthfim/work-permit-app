@@ -22,7 +22,8 @@ import {
   CheckCheck,
   Download,
   Copy,
-  History, // ✅ Tambahan icon untuk riwayat
+  History,
+  IdCard,
 } from "lucide-react";
 
 // Helper Component: Menampilkan List Array
@@ -174,7 +175,6 @@ export default function WorkPermitDetailPage() {
 
     setIsSubmitting(true);
     try {
-      // Ekstrak pelaksana array dengan aman
       const currentPelaksana = (permit.pelaksana || []).map(
         (p: any) => p._id || p,
       );
@@ -190,22 +190,33 @@ export default function WorkPermitDetailPage() {
         noTelpPjTeknik: permit.noTelpPjTeknik,
         tenagaAhliK3: permit.tenagaAhliK3._id,
         noTelpTenagaAhliK3: permit.noTelpTenagaAhliK3,
-        pelaksana: currentPelaksana, // ✅ pindah ke root
+        pelaksana: currentPelaksana,
         workPermitData: permit.workPermitData,
-        jsaData: permit.jsaData, // ✅ jsaData langsung tanpa modifikasi
+        jsaData: permit.jsaData,
         hirarcData: permit.hirarcData,
         sopData: permit.sopData,
         ikData: permit.ikData,
       };
 
-      console.log("=== RESUBMIT PAYLOAD ===");
-      console.log("pelaksana:", currentPelaksana);
-      console.log("payload:", JSON.stringify(payload, null, 2));
+      const submitData = new FormData();
+      submitData.append("payloadData", JSON.stringify(payload));
+
+      // ✅ Pakai Base64 dari server, convert jadi File langsung (Aman dari block ISP)
+      if (permit.fileKtpBase64) {
+        const ktpRes = await fetch(permit.fileKtpBase64);
+        const ktpBlob = await ktpRes.blob();
+        submitData.append(
+          "fileKtp",
+          ktpBlob,
+          permit.fileKtpBase64.includes("application/pdf")
+            ? "ktp.pdf"
+            : "ktp.jpg",
+        );
+      }
 
       const res = await fetch("/api/work-permits", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: submitData, // Kirim tanpa header Content-Type agar otomatis ter-set multipart/form-data
       });
 
       const result = await res.json();
@@ -222,7 +233,7 @@ export default function WorkPermitDetailPage() {
       }
     } catch (error) {
       console.error(error);
-      alert("Terjadi kesalahan sistem.");
+      alert("Terjadi kesalahan sistem saat mencoba re-submit.");
       setIsSubmitting(false);
     }
   };
@@ -249,14 +260,15 @@ export default function WorkPermitDetailPage() {
     );
   }
 
-  // ✅ Ekstrak array langsung dari DB
   const jsaDocs = Array.isArray(permit.jsaData) ? permit.jsaData : [];
   const sopDocs = Array.isArray(permit.sopData) ? permit.sopData : [];
   const ikDocs = Array.isArray(permit.ikData) ? permit.ikData : [];
   const pelaksanaList = permit.pelaksana || [];
-
-  // ✅ Ekstrak Riwayat Persetujuan
   const historyList = permit.history || [];
+
+  // Konfigurasi Display KTP dari Base64
+  const ktpSource = permit.fileKtpBase64 || "";
+  const isPdf = ktpSource.includes("application/pdf");
 
   return (
     <div className="relative min-h-full w-full bg-[#F7F8FA] p-6 md:p-8">
@@ -333,8 +345,9 @@ export default function WorkPermitDetailPage() {
               <Copy className="text-blue-600" /> Ajukan Ulang / Perpanjang
             </h2>
             <p className="mt-2 text-sm text-slate-500">
-              Pengajuan baru akan dibuat menyalin dokumen saat ini. Silakan atur
-              jadwal pelaksanaan (Tanggal & Waktu) yang baru.
+              Pengajuan baru akan dibuat menyalin dokumen saat ini (termasuk
+              dokumen KTP). Silakan atur jadwal pelaksanaan (Tanggal & Waktu)
+              yang baru.
             </p>
             <div className="mt-5 grid grid-cols-2 gap-4 rounded-xl border border-slate-100 bg-slate-50 p-4">
               <div>
@@ -534,13 +547,11 @@ export default function WorkPermitDetailPage() {
               const isApproval = log.status.includes("approved");
               const isRejection = log.status === "rejected";
 
-              // Fungsi untuk memformat role menjadi lebih enak dibaca
               const formatRole = (role: string) => {
                 if (role === "TENAGA_AHLI_K3") return "Tenaga Ahli K3";
                 if (role === "DIREKTUR") return "Direktur";
                 if (role === "PJ_TEKNIK") return "Penanggung Jawab Teknik";
                 if (!role) return "Sistem";
-                // Fallback jika ada role lain
                 return role
                   .replace(/_/g, " ")
                   .replace(/\b\w/g, (l) => l.toUpperCase());
@@ -674,26 +685,69 @@ export default function WorkPermitDetailPage() {
           </div>
         </DocumentSection>
 
-        {/* 2. JSA */}
+        {/* 2. JSA & DAFTAR PELAKSANA + KTP (BASE64 VER) */}
         <DocumentSection
           number={2}
           title="Job Safety Analysis (JSA)"
           icon={ShieldAlert}
           accent="bg-blue-600"
         >
-          <div className="mb-6 rounded-xl border border-blue-100 bg-blue-50/50 p-4">
-            <p className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-500">
-              <Users size={14} /> Daftar Pelaksana
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {pelaksanaList.map((p: any, idx: number) => (
-                <span
-                  key={p._id || idx}
-                  className="rounded-lg border border-blue-100 bg-white px-3 py-1.5 text-sm font-bold text-blue-900 shadow-sm"
-                >
-                  {p.nama || "Pelaksana Pekerjaan"}
-                </span>
-              ))}
+          <div className="mb-6 flex flex-col md:flex-row gap-4">
+            {/* Daftar Pelaksana Block */}
+            <div className="flex-1 rounded-xl border border-blue-100 bg-blue-50/50 p-4">
+              <p className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+                <Users size={14} /> Daftar Pelaksana Pekerjaan
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {pelaksanaList.map((p: any, idx: number) => (
+                  <span
+                    key={p._id || idx}
+                    className="rounded-lg border border-blue-100 bg-white px-3 py-1.5 text-sm font-bold text-blue-900 shadow-sm"
+                  >
+                    {p.nama || "Pelaksana Pekerjaan"}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* KTP Block (Render via Base64, Aman dari Blokir ISP) */}
+            <div className="flex flex-1 flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <p className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+                <IdCard size={14} /> Identitas Pelaksana
+              </p>
+
+              {ktpSource ? (
+                <>
+                  <div className="flex min-h-[160px] flex-1 items-center justify-center overflow-hidden rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 p-2">
+                    {isPdf ? (
+                      <iframe
+                        src={ktpSource}
+                        className="h-40 w-full rounded"
+                        title="Pratinjau KTP PDF"
+                      />
+                    ) : (
+                      <img
+                        src={ktpSource}
+                        alt="Pratinjau KTP"
+                        className="max-h-40 w-auto rounded object-contain shadow-sm"
+                      />
+                    )}
+                  </div>
+                  {/* Unduh KTP */}
+                  <a
+                    href={ktpSource}
+                    download={`KTP-${permit.nomorWP}`}
+                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-blue-50 px-4 py-2.5 text-xs font-bold text-blue-700 transition hover:bg-blue-100"
+                  >
+                    Unduh Dokumen KTP <Download size={14} />
+                  </a>
+                </>
+              ) : (
+                <div className="flex min-h-[160px] flex-1 flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 p-6 text-slate-400">
+                  <IdCard size={24} className="opacity-40" />
+                  <p className="text-xs">Dokumen KTP tidak tersedia</p>
+                </div>
+              )}
             </div>
           </div>
 

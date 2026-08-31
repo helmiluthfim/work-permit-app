@@ -113,7 +113,6 @@ export default function TabIK() {
     (p) => p._id === formData.tenagaAhliK3,
   );
 
-  // ✅ Baca dari ikDocs (array baru) — letakkan setelah selectedAhliK3
   const ikDocs: any[] = formData.ikDocs || [];
 
   const handleSubmitFinal = async () => {
@@ -138,10 +137,8 @@ export default function TabIK() {
         lampiran: textToArray(formData.wpLampiran),
       },
 
-      // ✅ pelaksana di root
       pelaksana: formData.jsaPelaksana || [],
 
-      // ✅ jsaData array — map dari jsaDocs
       jsaData: (formData.jsaDocs || []).map((jsa: any) => ({
         judulJsa: jsa.judulJsa || "",
         langkahKerja: textToArray(jsa.langkahKerja),
@@ -169,7 +166,6 @@ export default function TabIK() {
         penanggungJawab: textToArray(formData.hirarcPenanggungJawab),
       },
 
-      // ✅ sopData & ikData array — map dari sopDocs/ikDocs
       sopData: (formData.sopDocs || []).map((sop: any) => ({
         judulSop: sop.judulSop || "",
         perlengkapanKerja: textToArray(sop.perlengkapanKerja),
@@ -188,12 +184,27 @@ export default function TabIK() {
         uraianKegiatan: textToArray(ik.uraianKegiatan),
       })),
     };
+
     try {
+      // ✅ Siapkan FormData untuk mengirim file dan teks bersamaan
+      const submitData = new FormData();
+
+      // Masukkan file KTP jika ada
+      if (formData.fileKtp) {
+        submitData.append("fileKtp", formData.fileKtp);
+      } else {
+        throw new Error("Dokumen KTP pekerja wajib diunggah.");
+      }
+
+      // Masukkan seluruh struktur data teks sebagai satu string JSON
+      submitData.append("payloadData", JSON.stringify(payload));
+
       const res = await fetch("/api/work-permits", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        // HAPUS headers Content-Type karena FormData akan diset otomatis oleh browser
+        body: submitData,
       });
+
       const result = await res.json();
       if (!res.ok)
         throw new Error(result.message || "Gagal menyimpan pengajuan.");
@@ -264,7 +275,6 @@ export default function TabIK() {
         selectedAhliK3={selectedAhliK3}
       />
 
-      {/* ── PERALATAN IK 3 kolom ── */}
       {/* ── DOKUMEN IK ── */}
       {ikDocs.length === 0 ? (
         <div className="rounded-xl border border-dashed border-slate-200 py-8 text-center">

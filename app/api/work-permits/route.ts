@@ -2,19 +2,32 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOption } from "@/app/api/auth/[...nextauth]/route";
 import { connectDB } from "@/lib/mongodb";
-import JobTemplate from "@/models/JobTemplate";
+import mongoose from "mongoose";
 import WorkPermit from "@/models/WorkPermit";
-import Personnel from "@/models/Personnel";
-import { createNotification } from "@/lib/createNotification"; // ← tambah ini
+import { createNotification } from "@/lib/createNotification";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+
+export const dynamic = "force-dynamic";
+
+// Inisialisasi S3Client Cloudflare R2
+const s3Client = new S3Client({
+  region: "auto",
+  endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+  credentials: {
+    accessKeyId: process.env.R2_ACCESS_KEY_ID as string,
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY as string,
+  },
+});
+const BUCKET_NAME = process.env.R2_BUCKET_NAME as string;
 
 // ========================================================
-// GET: MENAMPILKAN DAFTAR WORK PERMIT (tidak ada perubahan)
+// GET: MENGAMBIL DAFTAR WORK PERMIT (LISTING / DASHBOARD)
 // ========================================================
 export async function GET(req: NextRequest) {
   try {
     await connectDB();
-
     const session = await getServerSession(authOption);
+
     if (!session) {
       return NextResponse.json(
         { success: false, message: "Unauthorized" },
@@ -22,28 +35,31 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const { searchParams } = new URL(req.url);
-    const statusFilter = searchParams.get("status");
+    const user = session.user as any;
+    let filter = {};
 
-    const filter: any = {};
-    if (statusFilter) {
-      filter.status = statusFilter;
+    // Filter data berdasarkan role login
+    if (user.role === "PJ_TEKNIK") {
+      filter = { createdBy: user.id };
+    } else if (user.role === "DIREKTUR") {
+      filter = { status: { $in: ["approved_k3", "approved_director"] } };
     }
 
     const workPermits = await WorkPermit.find(filter)
       .populate("pekerjaan", "kodePekerjaan namaPekerjaan")
       .populate("pjTeknik", "nama")
       .populate("tenagaAhliK3", "nama")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
-    return NextResponse.json({ success: true, data: workPermits });
-  } catch (error: any) {
-    console.error("Error pada GET /api/work-permits:", error);
     return NextResponse.json(
-      {
-        success: false,
-        message: error.message || "Gagal mengambil data izin kerja",
-      },
+      { success: true, data: workPermits },
+      { status: 200 },
+    );
+  } catch (error: any) {
+    console.error("Error GET Work Permits:", error);
+    return NextResponse.json(
+      { success: false, message: "Gagal mengambil data Work Permit" },
       { status: 500 },
     );
   }
@@ -64,62 +80,61 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body = await req.json();
-    const {
-      pekerjaan,
-      lokasi,
-      tanggalMulai,
-      waktuMulai,
-      tanggalSelesai,
-      waktuSelesai,
-      pjTeknik,
-      noTelpPjTeknik,
-      tenagaAhliK3,
-      noTelpTenagaAhliK3,
-      workPermitData,
-      jsaData,
-      hirarcData,
-      sopData,
-      ikData,
-      pelaksana,
-    } = body;
-
-    if (
-      !pekerjaan ||
-      !lokasi ||
-      !tanggalMulai ||
-      !waktuMulai ||
-      !tanggalSelesai ||
-      !waktuSelesai ||
-      !pjTeknik ||
-      !noTelpPjTeknik ||
-      !tenagaAhliK3 ||
-      !noTelpTenagaAhliK3 ||
-      !pelaksana ||
-      pelaksana.length === 0
-    ) {
+    const rawFormData = await req.formData();
+    const payloadDataString = rawFormData.get("payloadData") as string;
+    if (!payloadDataString) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "Semua data wajib dan pelaksana harus diisi",
-        },
+        { success: false, message: "Payload data tidak ditemukan" },
         { status: 400 },
       );
     }
 
-    const cekPekerjaan = await JobTemplate.findById(pekerjaan);
-    if (!cekPekerjaan) {
+    const body = JSON.parse(payloadDataString);
+    const fileKtp = rawFormData.get("fileKtp") as File | null;
+
+    if (!fileKtp) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "Template pekerjaan tidak ditemukan di database",
-        },
-        { status: 404 },
+        { success: false, message: "File KTP wajib diunggah" },
+        { status: 400 },
       );
     }
 
+    // ✅ 1. BUAT ID MONGODB & NOMOR WP DI AWAL
+    // Kita buat ID-nya secara manual agar bisa dipakai sebagai nama file gambar KTP
+    const newWorkPermitId = new mongoose.Types.ObjectId();
     const nomorWP = `WP-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
+    // ✅ 2. UPLOAD KTP MENGGUNAKAN ID WORK PERMIT BARU (PENYAMAAN ID)
+    let fileKtpUrl = "";
+    try {
+      let ext = "jpg";
+      if (fileKtp.type === "image/png") ext = "png";
+      else if (fileKtp.type === "application/pdf") ext = "pdf";
+      else if (fileKtp.type === "image/webp") ext = "webp";
+
+      // Nama file menjadi: ktp/64f1b2c3d...e4f5.jpg (Sesuai ID Dokumen Data)
+      const pathname = `ktp/${newWorkPermitId.toString()}.${ext}`;
+      const arrayBuffer = await fileKtp.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
+      await s3Client.send(
+        new PutObjectCommand({
+          Bucket: BUCKET_NAME,
+          Key: pathname,
+          Body: buffer,
+          ContentType: fileKtp.type,
+        }),
+      );
+      fileKtpUrl = pathname;
+    } catch (uploadError) {
+      console.error("Gagal mengunggah file KTP:", uploadError);
+      return NextResponse.json(
+        { success: false, message: "Gagal mengunggah dokumen KTP ke server." },
+        { status: 500 },
+      );
+    }
+
+    // --- Helper Formatting Text ---
     const toStringArray = (val: any): string[] =>
       Array.isArray(val)
         ? val.map((s: any) => String(s).trim()).filter(Boolean)
@@ -130,60 +145,57 @@ export async function POST(req: NextRequest) {
     const firstString = (val: any): string =>
       Array.isArray(val) ? (val[0] ?? "") : typeof val === "string" ? val : "";
 
-    const sanitizedHirarcData = hirarcData
+    const sanitizedHirarcData = body.hirarcData
       ? {
-          potensiBahaya: toStringArray(hirarcData.potensiBahaya),
-          resiko: toStringArray(hirarcData.resiko),
-          pengendalian: toStringArray(hirarcData.pengendalian),
-          penanggungJawab: toStringArray(hirarcData.penanggungJawab),
-          konsekuensiKeparahan: toStringArray(hirarcData.konsekuensiKeparahan),
-          kemungkinanTerjadi: toStringArray(hirarcData.kemungkinanTerjadi),
-          tingkatResiko: toStringArray(hirarcData.tingkatResiko),
+          potensiBahaya: toStringArray(body.hirarcData.potensiBahaya),
+          resiko: toStringArray(body.hirarcData.resiko),
+          pengendalian: toStringArray(body.hirarcData.pengendalian),
+          penanggungJawab: toStringArray(body.hirarcData.penanggungJawab),
+          konsekuensiKeparahan: toStringArray(
+            body.hirarcData.konsekuensiKeparahan,
+          ),
+          kemungkinanTerjadi: toStringArray(body.hirarcData.kemungkinanTerjadi),
+          tingkatResiko: toStringArray(body.hirarcData.tingkatResiko),
           konsekuensiSetelahPengendalian: toStringArray(
-            hirarcData.konsekuensiSetelahPengendalian,
+            body.hirarcData.konsekuensiSetelahPengendalian,
           ),
           kemungkinanTerjadiSetelahPengendalian: toStringArray(
-            hirarcData.kemungkinanTerjadiSetelahPengendalian,
+            body.hirarcData.kemungkinanTerjadiSetelahPengendalian,
           ),
           tingkatResikoSetelahPengendalian: toStringArray(
-            hirarcData.tingkatResikoSetelahPengendalian,
+            body.hirarcData.tingkatResikoSetelahPengendalian,
           ),
-          statusPengendalian: firstString(hirarcData.statusPengendalian),
+          statusPengendalian: firstString(body.hirarcData.statusPengendalian),
         }
       : {};
 
     const userId = (session.user as any).id;
-    console.log("=== DEBUG ===");
-    console.log("userId:", userId);
-    console.log("session.user:", JSON.stringify(session.user));
 
+    // ✅ 3. SIMPAN KE DATABASE MENGGUNAKAN ID YANG SAMA DENGAN NAMA FILE
     const workPermit = await WorkPermit.create({
+      _id: newWorkPermitId,
       nomorWP,
-      pekerjaan,
-      lokasi,
-      tanggalMulai,
-      waktuMulai,
-      tanggalSelesai,
-      waktuSelesai,
-      pjTeknik,
-      noTelpPjTeknik,
-      tenagaAhliK3,
-      noTelpTenagaAhliK3,
+      pekerjaan: body.pekerjaan,
+      lokasi: body.lokasi,
+      tanggalMulai: body.tanggalMulai,
+      waktuMulai: body.waktuMulai,
+      tanggalSelesai: body.tanggalSelesai,
+      waktuSelesai: body.waktuSelesai,
+      pjTeknik: body.pjTeknik,
+      noTelpPjTeknik: body.noTelpPjTeknik,
+      tenagaAhliK3: body.tenagaAhliK3,
+      noTelpTenagaAhliK3: body.noTelpTenagaAhliK3,
+      fileKtp: fileKtpUrl, // Menyimpan path name (ex: ktp/64f1b...jpg)
       status: "submitted",
       createdBy: userId,
-      workPermitData,
-      pelaksana,
-      jsaData,
+      workPermitData: body.workPermitData,
+      pelaksana: body.pelaksana,
+      jsaData: body.jsaData,
       hirarcData: sanitizedHirarcData,
-      sopData,
-      ikData,
+      sopData: body.sopData,
+      ikData: body.ikData,
     });
 
-    console.log("=== WORK PERMIT CREATED ===");
-    console.log("createdBy:", workPermit.createdBy);
-    console.log("nomorWP:", workPermit.nomorWP);
-
-    // ── Kirim notifikasi ke K3 setelah WP berhasil dibuat ──
     await createNotification({
       recipientRole: "TENAGA_AHLI_K3",
       title: "Work Permit Baru Diajukan",
@@ -201,8 +213,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        message:
-          error.message || "Gagal membuat pengajuan Izin Kerja (Work Permit)",
+        message: error.message || "Gagal membuat pengajuan Izin Kerja",
       },
       { status: 500 },
     );
