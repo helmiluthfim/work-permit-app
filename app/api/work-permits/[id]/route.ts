@@ -6,7 +6,47 @@ import WorkPermit from "@/models/WorkPermit";
 import User from "@/models/User";
 import { createNotification } from "@/lib/createNotification";
 
+// ✅ Import AWS SDK (Get, Put, dan Delete untuk R2)
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+} from "@aws-sdk/client-s3";
+
 export const dynamic = "force-dynamic";
+
+// ========================================================
+// INISIALISASI CLOUDFLARE R2 SECARA AMAN
+// ========================================================
+let s3Client: S3Client | null = null;
+let r2BucketName = "";
+
+try {
+  const endpointRaw = process.env.R2_ENDPOINT?.trim() || "";
+  const accessKeyId = process.env.R2_ACCESS_KEY_ID?.trim() || "";
+  const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY?.trim() || "";
+  r2BucketName = process.env.R2_BUCKET_NAME?.trim() || "";
+
+  if (endpointRaw && accessKeyId && secretAccessKey) {
+    const formattedEndpoint = endpointRaw.startsWith("http")
+      ? endpointRaw
+      : `https://${endpointRaw}`;
+
+    s3Client = new S3Client({
+      region: "auto",
+      endpoint: formattedEndpoint,
+      credentials: {
+        accessKeyId,
+        secretAccessKey,
+      },
+    });
+  } else {
+    console.warn("⚠️ Peringatan: Kredensial R2 belum lengkap di .env");
+  }
+} catch (err) {
+  console.error("Gagal menginisialisasi S3Client:", err);
+}
 
 // ========================================================
 // GET: MENGAMBIL DETAIL SATU WORK PERMIT
@@ -42,38 +82,55 @@ export async function GET(
       );
     }
 
-    // ✅ FETCH KTP DI SERVER (VERCEL) UNTUK MENGHINDARI BLOKIR ISP
+    // ✅ FETCH KTP DARI R2 MENGGUNAKAN PRIVATE ROUTE
     if (workPermit.fileKtp) {
       try {
-        const R2_BASE_URL =
-          process.env.R2_PUBLIC_URL || "https://pub-xxxx.r2.dev";
-        const fileUrl = workPermit.fileKtp.startsWith("http")
-          ? workPermit.fileKtp
-          : `${R2_BASE_URL.replace(/\/$/, "")}/${workPermit.fileKtp.replace(/^\//, "")}`;
+        if (workPermit.fileKtp.startsWith("http")) {
+          // Jika data KTP lama masih berupa URL langsung
+          const response = await fetch(workPermit.fileKtp);
+          if (response.ok) {
+            const arrayBuffer = await response.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+            const base64 = buffer.toString("base64");
+            const mimeType = workPermit.fileKtp.toLowerCase().endsWith(".pdf")
+              ? "application/pdf"
+              : "image/jpeg";
+            workPermit.fileKtpBase64 = `data:${mimeType};base64,${base64}`;
+          }
+        } else if (s3Client && r2BucketName) {
+          // Jika menggunakan S3Client (Key dari DB)
+          const getCommand = new GetObjectCommand({
+            Bucket: r2BucketName,
+            Key: workPermit.fileKtp.replace(/^\//, ""),
+          });
+          const response = await s3Client.send(getCommand);
 
-        const response = await fetch(fileUrl);
-        if (response.ok) {
-          const arrayBuffer = await response.arrayBuffer();
-          const buffer = Buffer.from(arrayBuffer);
-          const base64 = buffer.toString("base64");
-          const mimeType = fileUrl.toLowerCase().endsWith(".pdf")
-            ? "application/pdf"
-            : "image/jpeg";
-          workPermit.fileKtpBase64 = `data:${mimeType};base64,${base64}`;
+          if (response.Body) {
+            const byteArray = await response.Body.transformToByteArray();
+            const buffer = Buffer.from(byteArray);
+            const base64 = buffer.toString("base64");
+            const mimeType =
+              response.ContentType ||
+              (workPermit.fileKtp.toLowerCase().endsWith(".pdf")
+                ? "application/pdf"
+                : "image/jpeg");
+            workPermit.fileKtpBase64 = `data:${mimeType};base64,${base64}`;
+          }
         }
       } catch (err) {
-        console.error("Gagal convert KTP ke Base64 di server:", err);
+        console.error("Gagal mengambil gambar dari R2:", err);
       }
     }
 
     // Resolve tanda tangan digital...
-    const [pjTeknikUser, k3User] = await Promise.all([
+    const [pjTeknikUser, k3User, direkturUser] = await Promise.all([
       User.findOne({ role: "PJ_TEKNIK" })
         .select("username role signatures")
         .lean(),
       User.findOne({ role: "TENAGA_AHLI_K3" })
         .select("username role signatures")
         .lean(),
+      User.findOne({ role: "DIREKTUR" }).select("username signatures").lean(),
     ]);
 
     if (workPermit.pjTeknik) {
@@ -90,15 +147,11 @@ export async function GET(
         resolvedSignature: k3User?.signatures?.TENAGA_AHLI_K3 ?? null,
       };
     }
-
-    const direktur = await User.findOne({ role: "DIREKTUR" })
-      .select("username signatures")
-      .lean();
-    if (direktur) {
-      (direktur as any).resolvedSignature =
-        (direktur as any).signatures?.DIREKTUR ?? null;
+    if (direkturUser) {
+      workPermit.direktur = {
+        resolvedSignature: (direkturUser as any).signatures?.DIREKTUR ?? null,
+      };
     }
-    workPermit.direktur = direktur;
 
     return NextResponse.json(
       { success: true, data: workPermit },
@@ -167,11 +220,10 @@ export async function PATCH(
       $push: { history: newHistoryRecord },
     };
 
-    if (status === "rejected" && catatanPenolakan) {
+    if (status === "rejected" && catatanPenolakan)
       updateQuery.$set.catatanPenolakan = catatanPenolakan;
-    } else if (status.includes("approved")) {
+    else if (status.includes("approved"))
       updateQuery.$set.catatanPenolakan = "";
-    }
 
     const updatedWorkPermit = await WorkPermit.findByIdAndUpdate(
       id,
@@ -202,7 +254,6 @@ export async function PATCH(
         type: "RATIFY",
         documentId: updatedWorkPermit._id.toString(),
       });
-
       if (pjTeknikUser) {
         await createNotification({
           recipientRole: "PJ_TEKNIK",
@@ -243,7 +294,7 @@ export async function PATCH(
 }
 
 // ========================================================
-// PUT: MENGEDIT WORK PERMIT YANG DITOLAK (REVISI)
+// PUT: MENGEDIT WORK PERMIT YANG DITOLAK (REVISI) & HAPUS KTP LAMA
 // ========================================================
 export async function PUT(
   req: NextRequest,
@@ -263,6 +314,8 @@ export async function PUT(
 
     const formData = await req.formData();
     const payloadData = formData.get("payloadData") as string;
+    const fileKtp = formData.get("fileKtp") as File | null; // Tangkap file KTP revisi
+
     if (!payloadData)
       return NextResponse.json(
         { success: false, message: "Payload kosong" },
@@ -284,7 +337,6 @@ export async function PUT(
       createdAt: new Date(),
     };
 
-    // Update query: set data baru, ubah status kembali jadi submitted, kosongkan catatan penolakan
     const updateQuery: any = {
       $set: {
         ...payload,
@@ -294,8 +346,61 @@ export async function PUT(
       $push: { history: newHistoryRecord },
     };
 
-    // (Catatan: Kita tidak perlu update fileKtp, karena KTP sudah ada di database dokumen ini)
+    // ✅ PROSES GANTI KTP (UPLOAD BARU & HAPUS YANG LAMA)
+    if (fileKtp && fileKtp.size > 0 && s3Client && r2BucketName) {
+      try {
+        // 1. Ambil data dokumen yang lama dari Database
+        const existingWP = await WorkPermit.findById(id)
+          .select("fileKtp")
+          .lean();
 
+        // 2. Upload file baru ke R2
+        const buffer = Buffer.from(await fileKtp.arrayBuffer());
+        const ext =
+          fileKtp.name
+            .split(".")
+            .pop()
+            ?.toLowerCase()
+            .replace(/[^a-z0-9]/g, "") || "jpg";
+        const fileName = `ktp/${id}/ktp-${Date.now()}.${ext}`;
+
+        await s3Client.send(
+          new PutObjectCommand({
+            Bucket: r2BucketName,
+            Key: fileName,
+            Body: buffer,
+            ContentType: fileKtp.type || "application/octet-stream",
+          }),
+        );
+
+        // Simpan path baru ke database
+        updateQuery.$set.fileKtp = fileName;
+
+        // 3. Hapus file lama di R2
+        if (existingWP?.fileKtp && !existingWP.fileKtp.startsWith("http")) {
+          await s3Client
+            .send(
+              new DeleteObjectCommand({
+                Bucket: r2BucketName,
+                Key: existingWP.fileKtp.replace(/^\//, ""),
+              }),
+            )
+            .catch(() =>
+              console.log("File lama KTP tidak ditemukan di R2, diabaikan."),
+            );
+        }
+      } catch (uploadError: any) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: "Gagal mengganti file KTP: " + uploadError.message,
+          },
+          { status: 500 },
+        );
+      }
+    }
+
+    // Eksekusi pembaruan data
     const updatedWorkPermit = await WorkPermit.findByIdAndUpdate(
       id,
       updateQuery,
