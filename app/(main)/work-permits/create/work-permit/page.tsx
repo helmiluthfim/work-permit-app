@@ -17,7 +17,7 @@ import {
   ChevronDown,
   Sparkles,
   Upload,
-  CheckCircle2,
+  CheckCircle2, // <-- Ditambahkan
 } from "lucide-react";
 import { WorkPermitFormContext } from "../layout";
 
@@ -113,9 +113,6 @@ export default function TabWorkPermit() {
   const [isFetching, setIsFetching] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // ✅ TAMBAHAN: State untuk menyimpan URL sementara dari gambar (preview)
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-
   useEffect(() => {
     const fetchMasterData = async () => {
       try {
@@ -138,19 +135,6 @@ export default function TabWorkPermit() {
     };
     fetchMasterData();
   }, []);
-
-  // ✅ TAMBAHAN: Generate Image Preview URL setiap kali ada file KTP baru
-  useEffect(() => {
-    if (formData.fileKtp && formData.fileKtp.type.startsWith("image/")) {
-      const objectUrl = URL.createObjectURL(formData.fileKtp);
-      setPreviewUrl(objectUrl);
-
-      // Membersihkan object URL ketika komponen di-unmount atau file diganti
-      return () => URL.revokeObjectURL(objectUrl);
-    } else {
-      setPreviewUrl(null); // Jika PDF atau file lain, tidak ada preview gambar
-    }
-  }, [formData.fileKtp]);
 
   const handleJobChange = (jobId: string) => {
     const selectedJob = jobTemplates.find((j) => j._id === jobId);
@@ -281,6 +265,8 @@ export default function TabWorkPermit() {
       fileKtp,
     } = formData;
 
+    // Validasi field wajib.
+    // ✅ PERUBAHAN: Jika ada existingKtp (berarti lagi revisi), maka fileKtp tidak wajib
     if (
       !pekerjaanId ||
       !lokasi ||
@@ -359,7 +345,7 @@ export default function TabWorkPermit() {
                 value={formData.pekerjaanId}
                 onChange={(e) => handleJobChange(e.target.value)}
                 className={selectClass}
-                disabled={formData.editMode} // Disable ubah template saat revisi
+                disabled={formData.editMode} // Disable ubah template saat revisi (opsional)
               >
                 <option value="" disabled>
                   — Pilih template pekerjaan —
@@ -632,26 +618,15 @@ export default function TabWorkPermit() {
               </p>
             </div>
 
-            {/* ✅ PERUBAHAN: Menampilkan Preview KTP yang dipilih */}
+            {/* ✅ PERUBAHAN: Indikator File Berhasil Dipilih atau Menggunakan KTP Lama */}
             {formData.fileKtp ? (
-              <div className="mt-3 flex items-center gap-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-green-700 animate-in zoom-in-95 duration-200">
-                {previewUrl ? (
-                  <img
-                    src={previewUrl}
-                    alt="Preview KTP"
-                    className="h-14 w-20 rounded bg-white object-cover shadow-sm ring-1 ring-black/5"
-                  />
-                ) : (
-                  <div className="flex h-14 w-20 items-center justify-center rounded bg-white shadow-sm ring-1 ring-black/5">
-                    <FileText size={24} className="opacity-80" />
-                  </div>
-                )}
-
-                <div className="flex flex-col overflow-hidden">
+              <div className="mt-3 flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-green-700">
+                <FileText size={18} />
+                <div className="flex flex-col">
                   <span className="text-sm font-bold leading-none">
                     File terpilih
                   </span>
-                  <span className="mt-1.5 truncate text-xs font-medium opacity-80">
+                  <span className="mt-1 text-xs opacity-80">
                     {formData.fileKtp.name}
                   </span>
                 </div>
