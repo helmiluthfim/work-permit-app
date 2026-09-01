@@ -119,7 +119,16 @@ export default function WorkPermitDetailPage() {
   useEffect(() => {
     const fetchDetail = async () => {
       try {
-        const res = await fetch(`/api/work-permits/${id}`);
+        // ✅ PERBAIKAN: Tambahkan parameter waktu & header no-cache
+        // agar browser / Next.js tidak menggunakan data lama
+        const res = await fetch(`/api/work-permits/${id}?t=${Date.now()}`, {
+          cache: "no-store",
+          headers: {
+            "Cache-Control": "no-cache",
+            Pragma: "no-cache",
+          },
+        });
+
         const result = await res.json();
         if (result.success) setPermit(result.data);
       } catch (error) {
