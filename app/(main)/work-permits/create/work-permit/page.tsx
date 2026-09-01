@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
@@ -17,7 +17,8 @@ import {
   ChevronDown,
   Sparkles,
   Upload,
-  CheckCircle2, // <-- Ditambahkan
+  CheckCircle2,
+  Trash2,
 } from "lucide-react";
 import { WorkPermitFormContext } from "../layout";
 
@@ -113,6 +114,10 @@ export default function TabWorkPermit() {
   const [isFetching, setIsFetching] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
 
+  // ✅ TAMBAHAN: Ref dan State untuk Preview KTP (seperti di Profile)
+  const fileKtpRef = useRef<HTMLInputElement>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
   useEffect(() => {
     const fetchMasterData = async () => {
       try {
@@ -135,6 +140,17 @@ export default function TabWorkPermit() {
     };
     fetchMasterData();
   }, []);
+
+  // ✅ TAMBAHAN: Update URL Preview jika file berubah (Untuk Gambar)
+  useEffect(() => {
+    if (formData.fileKtp && formData.fileKtp.type.startsWith("image/")) {
+      const objectUrl = URL.createObjectURL(formData.fileKtp);
+      setPreviewUrl(objectUrl);
+      return () => URL.revokeObjectURL(objectUrl);
+    } else {
+      setPreviewUrl(null);
+    }
+  }, [formData.fileKtp]);
 
   const handleJobChange = (jobId: string) => {
     const selectedJob = jobTemplates.find((j) => j._id === jobId);
@@ -231,7 +247,6 @@ export default function TabWorkPermit() {
     });
   };
 
-  // Fungsi khusus untuk menangani upload file (KTP)
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (errorMsg) setErrorMsg("");
     const { name, files } = e.target;
@@ -239,14 +254,21 @@ export default function TabWorkPermit() {
     if (files && files.length > 0) {
       setFormData((prev: any) => ({
         ...prev,
-        [name]: files[0], // Menyimpan object File ke dalam state
+        [name]: files[0],
       }));
-    } else {
-      setFormData((prev: any) => {
-        const updated = { ...prev };
-        delete updated[name];
-        return updated;
-      });
+    }
+  };
+
+  // ✅ TAMBAHAN: Fungsi Hapus/Batal KTP
+  const handleClearFile = () => {
+    setFormData((prev: any) => {
+      const updated = { ...prev };
+      delete updated.fileKtp; // Hapus file dari state
+      return updated;
+    });
+    setPreviewUrl(null);
+    if (fileKtpRef.current) {
+      fileKtpRef.current.value = ""; // Reset input file HTML
     }
   };
 
@@ -265,8 +287,6 @@ export default function TabWorkPermit() {
       fileKtp,
     } = formData;
 
-    // Validasi field wajib.
-    // ✅ PERUBAHAN: Jika ada existingKtp (berarti lagi revisi), maka fileKtp tidak wajib
     if (
       !pekerjaanId ||
       !lokasi ||
@@ -605,39 +625,82 @@ export default function TabWorkPermit() {
             <FieldLabel required>
               Upload KTP / Identitas Diri Pekerja
             </FieldLabel>
-            <div className="relative mt-1">
-              <input
-                type="file"
-                name="fileKtp"
-                accept="image/*,application/pdf"
-                onChange={handleFileChange}
-                className="block w-full text-sm text-slate-500 file:mr-4 file:cursor-pointer file:rounded-xl file:border-0 file:bg-[#0F1F3D]/10 file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-[#0F1F3D] hover:file:bg-[#0F1F3D]/20 focus:outline-none"
-              />
-              <p className="mt-2 text-xs text-slate-400">
-                Format yang didukung: JPG, PNG, atau PDF (Maksimal 2MB)
-              </p>
-            </div>
 
-            {/* ✅ PERUBAHAN: Indikator File Berhasil Dipilih atau Menggunakan KTP Lama */}
+            {/* Hidden File Input */}
+            <input
+              type="file"
+              name="fileKtp"
+              id="upload-ktp"
+              accept="image/*,application/pdf"
+              onChange={handleFileChange}
+              ref={fileKtpRef}
+              className="hidden"
+            />
+
             {formData.fileKtp ? (
-              <div className="mt-3 flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-green-700">
-                <FileText size={18} />
-                <div className="flex flex-col">
-                  <span className="text-sm font-bold leading-none">
-                    File terpilih
-                  </span>
-                  <span className="mt-1 text-xs opacity-80">
-                    {formData.fileKtp.name}
-                  </span>
+              <div className="mt-2 flex items-center justify-between rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-green-700 animate-in zoom-in-95 duration-200">
+                <div className="flex items-center gap-4 truncate">
+                  {/* Tampilkan Pratinjau Gambar atau Ikon PDF */}
+                  {previewUrl ? (
+                    <img
+                      src={previewUrl}
+                      alt="Preview KTP"
+                      className="h-12 w-16 shrink-0 rounded bg-white object-cover shadow-sm ring-1 ring-black/5"
+                    />
+                  ) : (
+                    <div className="flex h-12 w-16 shrink-0 items-center justify-center rounded bg-white shadow-sm ring-1 ring-black/5">
+                      <FileText size={20} className="opacity-80" />
+                    </div>
+                  )}
+
+                  <div className="flex flex-col truncate">
+                    <span className="text-sm font-bold leading-none">
+                      File terpilih
+                    </span>
+                    <span className="mt-1.5 truncate text-xs font-medium opacity-80">
+                      {formData.fileKtp.name}
+                    </span>
+                  </div>
                 </div>
+
+                {/* Tombol Batal/Hapus */}
+                <button
+                  type="button"
+                  onClick={handleClearFile}
+                  className="ml-2 rounded-lg p-2 text-red-500 hover:bg-red-100 transition-colors"
+                  title="Batal / Hapus File"
+                >
+                  <Trash2 size={18} />
+                </button>
               </div>
             ) : formData.existingKtp ? (
-              <div className="mt-3 flex items-center gap-2 rounded-xl bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700">
-                <CheckCircle2 size={16} />
-                KTP lama Anda telah tersimpan. Unggah file baru HANYA JIKA Anda
-                ingin menggantinya.
+              <div className="mt-2 flex flex-col items-start gap-3 rounded-xl bg-blue-50 px-4 py-3">
+                <div className="flex items-center gap-2 text-sm font-semibold text-blue-700">
+                  <CheckCircle2 size={16} className="shrink-0" />
+                  KTP lama Anda telah tersimpan.
+                </div>
+                <label
+                  htmlFor="upload-ktp"
+                  className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-xs font-bold text-white transition hover:bg-blue-700 shadow-sm"
+                >
+                  <Upload size={14} />
+                  Ganti KTP Baru
+                </label>
               </div>
-            ) : null}
+            ) : (
+              <div className="mt-2">
+                <label
+                  htmlFor="upload-ktp"
+                  className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-[#0F1F3D] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#1a3561] shadow-sm"
+                >
+                  <Upload size={16} />
+                  Pilih File KTP
+                </label>
+                <p className="mt-2 text-xs text-slate-400">
+                  Format yang didukung: JPG, PNG, atau PDF (Maksimal 2MB)
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </SectionCard>
