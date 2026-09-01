@@ -1,7 +1,7 @@
 "use client";
 
-import { createContext, useState, ReactNode } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { createContext, useState, useEffect, ReactNode, Suspense } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import {
   FileText,
   ShieldAlert,
@@ -11,6 +11,7 @@ import {
   Lock,
   CheckCircle2,
 } from "lucide-react";
+import { LoadingSpinner } from "./shared-components";
 
 export const WorkPermitFormContext = createContext<any>(null);
 
@@ -52,15 +53,23 @@ const TABS = [
   },
 ];
 
-export default function CreateWorkPermitLayout({
-  children,
-}: {
-  children: ReactNode;
-}) {
+// Helper fungsi untuk mengubah array dari DB menjadi string per-baris untuk Form
+const arrayToText = (arr?: any) => (Array.isArray(arr) ? arr.join("\n") : "");
+
+function WorkPermitLayoutInner({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editId = searchParams.get("editId");
+
+  const [isFetchingEdit, setIsFetchingEdit] = useState(false);
 
   const [formData, setFormData] = useState({
+    // Penanda mode revisi
+    editMode: false,
+    editId: "",
+    existingKtp: false,
+
     pekerjaanId: "",
     lokasi: "",
     tanggalMulai: "",
@@ -71,22 +80,18 @@ export default function CreateWorkPermitLayout({
     noTelpPjTeknik: "",
     tenagaAhliK3: "",
     noTelpTenagaAhliK3: "",
+    fileKtp: null,
 
     // Work Permit
     wpKlasifikasi: "",
     wpProsedur: "",
     wpLampiran: "",
 
-    // JSA — pelaksana di root, jsaDocs adalah array
+    // JSA
     jsaPelaksana: [] as string[],
-    jsaDocs: [] as {
-      judulJsa: string;
-      langkahKerja: string;
-      bahayaResiko: string;
-      pengendalian: string;
-    }[],
+    jsaDocs: [] as any[],
 
-    // HIRARC — tetap sama
+    // HIRARC
     hirarcPotensi: "",
     hirarcResiko: "",
     hirarcPengendalian: "",
@@ -99,26 +104,99 @@ export default function CreateWorkPermitLayout({
     hirarcTingkatSetelah: "",
     hirarcStatusPengendalian: "",
 
-    // SOP — array
-    sopDocs: [] as {
-      judulSop: string;
-      perlengkapanKerja: string;
-      peralatanUkur: string;
-      peralatanKerja: string;
-      judulUraianKegiatan: string;
-      uraianKegiatan: string;
-    }[],
+    // SOP
+    sopDocs: [] as any[],
 
-    // IK — array
-    ikDocs: [] as {
-      judulIk: string;
-      perlengkapanKerja: string;
-      peralatanUkur: string;
-      peralatanKerja: string;
-      judulUraianKegiatan: string;
-      uraianKegiatan: string;
-    }[],
+    // IK
+    ikDocs: [] as any[],
   });
+
+  // ─── LOGIKA FETCH DATA REVISI ───
+  useEffect(() => {
+    if (editId) {
+      setIsFetchingEdit(true);
+      fetch(`/api/work-permits/${editId}`)
+        .then((res) => res.json())
+        .then((result) => {
+          if (result.success) {
+            const d = result.data;
+            const hd = d.hirarcData || {};
+            const wp = d.workPermitData || {};
+
+            setFormData((prev) => ({
+              ...prev,
+              editMode: true,
+              editId: editId,
+              existingKtp: !!d.fileKtp,
+
+              pekerjaanId: d.pekerjaan?._id || d.pekerjaan || "",
+              lokasi: d.lokasi || "",
+              tanggalMulai: d.tanggalMulai || "",
+              waktuMulai: d.waktuMulai || "",
+              tanggalSelesai: d.tanggalSelesai || "",
+              waktuSelesai: d.waktuSelesai || "",
+              pjTeknik: d.pjTeknik?._id || d.pjTeknik || "",
+              noTelpPjTeknik: d.noTelpPjTeknik || "",
+              tenagaAhliK3: d.tenagaAhliK3?._id || d.tenagaAhliK3 || "",
+              noTelpTenagaAhliK3: d.noTelpTenagaAhliK3 || "",
+
+              wpKlasifikasi: arrayToText(wp.klasifikasiPekerjaan),
+              wpProsedur: arrayToText(wp.prosedurPekerjaan),
+              wpLampiran: arrayToText(wp.lampiran),
+
+              jsaPelaksana: (d.pelaksana || []).map((p: any) => p._id || p),
+              // ✅ DIPERBAIKI: Petakan array objek DB ke format string teks agar tidak error
+              jsaDocs: (d.jsaData || []).map((jsa: any) => ({
+                judulJsa: jsa.judulJsa || "",
+                langkahKerja: arrayToText(jsa.langkahKerja),
+                bahayaResiko: arrayToText(jsa.bahayaResiko),
+                pengendalian: arrayToText(jsa.pengendalian),
+              })),
+
+              hirarcPotensi: arrayToText(hd.potensiBahaya),
+              hirarcResiko: arrayToText(hd.resiko),
+              hirarcPengendalian: arrayToText(hd.pengendalian),
+              hirarcPenanggungJawab: arrayToText(hd.penanggungJawab),
+              hirarcKeparahan: arrayToText(hd.konsekuensiKeparahan),
+              hirarcKemungkinan: arrayToText(hd.kemungkinanTerjadi),
+              hirarcTingkat: arrayToText(hd.tingkatResiko),
+              hirarcKeparahanSetelah: arrayToText(
+                hd.konsekuensiSetelahPengendalian,
+              ),
+              hirarcKemungkinanSetelah: arrayToText(
+                hd.kemungkinanTerjadiSetelahPengendalian,
+              ),
+              hirarcTingkatSetelah: arrayToText(
+                hd.tingkatResikoSetelahPengendalian,
+              ),
+              hirarcStatusPengendalian: hd.statusPengendalian || "",
+
+              // ✅ DIPERBAIKI: Petakan array SOP dari DB
+              sopDocs: (d.sopData || []).map((sop: any) => ({
+                judulSop: sop.judulSop || "",
+                perlengkapanKerja: arrayToText(sop.perlengkapanKerja),
+                peralatanUkur: arrayToText(sop.peralatanUkur),
+                peralatanKerja: arrayToText(sop.peralatanKerja),
+                judulUraianKegiatan: arrayToText(sop.judulUraianKegiatan),
+                uraianKegiatan: arrayToText(sop.uraianKegiatan),
+              })),
+
+              // ✅ DIPERBAIKI: Petakan array IK dari DB
+              ikDocs: (d.ikData || []).map((ik: any) => ({
+                judulIk: ik.judulIk || "",
+                perlengkapanKerja: arrayToText(ik.perlengkapanKerja),
+                peralatanUkur: arrayToText(ik.peralatanUkur),
+                peralatanKerja: arrayToText(ik.peralatanKerja),
+                judulUraianKegiatan: arrayToText(ik.judulUraianKegiatan),
+                uraianKegiatan: arrayToText(ik.uraianKegiatan),
+              })),
+            }));
+          }
+        })
+        .catch((err) => console.error("Gagal load data revisi:", err))
+        .finally(() => setIsFetchingEdit(false));
+    }
+  }, [editId]);
 
   const isWpValid = () =>
     !!(
@@ -152,6 +230,14 @@ export default function CreateWorkPermitLayout({
 
   const activeIndex = TABS.findIndex((t) => pathname.includes(t.path));
 
+  if (isFetchingEdit) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#F7F8FA]">
+        <LoadingSpinner label="Menyiapkan Dokumen Revisi..." />
+      </div>
+    );
+  }
+
   return (
     <WorkPermitFormContext.Provider value={{ formData, setFormData }}>
       <div className="min-h-full w-full bg-[#F7F8FA]">
@@ -162,11 +248,14 @@ export default function CreateWorkPermitLayout({
               Dokumen K3
             </p>
             <h1 className="text-xl font-black tracking-tight text-white">
-              Buat Work Permit Baru
+              {formData.editMode
+                ? "Revisi Work Permit"
+                : "Buat Work Permit Baru"}
             </h1>
             <p className="mt-1 text-xs text-slate-400">
-              Lengkapi seluruh dokumen secara berurutan untuk mengajukan izin
-              kerja.
+              {formData.editMode
+                ? "Perbaiki data dokumen yang ditolak dan ajukan ulang."
+                : "Lengkapi seluruh dokumen secara berurutan untuk mengajukan izin kerja."}
             </p>
           </div>
         </div>
@@ -186,7 +275,14 @@ export default function CreateWorkPermitLayout({
                   <button
                     key={tab.name}
                     type="button"
-                    onClick={() => unlocked && router.push(tab.path)}
+                    onClick={() =>
+                      unlocked &&
+                      router.push(
+                        formData.editId
+                          ? `${tab.path}?editId=${formData.editId}`
+                          : tab.path,
+                      )
+                    }
                     disabled={!unlocked}
                     title={
                       !unlocked
@@ -291,5 +387,23 @@ export default function CreateWorkPermitLayout({
         <div className="mx-auto max-w-5xl px-4 py-8 md:px-6">{children}</div>
       </div>
     </WorkPermitFormContext.Provider>
+  );
+}
+
+export default function CreateWorkPermitLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-[#F7F8FA]">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-[#0F1F3D]" />
+        </div>
+      }
+    >
+      <WorkPermitLayoutInner>{children}</WorkPermitLayoutInner>
+    </Suspense>
   );
 }

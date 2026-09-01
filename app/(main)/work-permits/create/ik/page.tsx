@@ -186,22 +186,26 @@ export default function TabIK() {
     };
 
     try {
-      // ✅ Siapkan FormData untuk mengirim file dan teks bersamaan
       const submitData = new FormData();
 
-      // Masukkan file KTP jika ada
+      // ✅ JALUR GANDA: Cek apakah ada file KTP baru, JIKA TIDAK ADA cek apakah ini revisi
       if (formData.fileKtp) {
         submitData.append("fileKtp", formData.fileKtp);
-      } else {
+      } else if (!formData.existingKtp) {
         throw new Error("Dokumen KTP pekerja wajib diunggah.");
       }
 
-      // Masukkan seluruh struktur data teks sebagai satu string JSON
       submitData.append("payloadData", JSON.stringify(payload));
 
-      const res = await fetch("/api/work-permits", {
-        method: "POST",
-        // HAPUS headers Content-Type karena FormData akan diset otomatis oleh browser
+      // ✅ PENENTU METODE API (POST vs PUT)
+      const isRevision = formData.editMode === true;
+      const apiUrl = isRevision
+        ? `/api/work-permits/${formData.editId}`
+        : "/api/work-permits";
+      const apiMethod = isRevision ? "PUT" : "POST";
+
+      const res = await fetch(apiUrl, {
+        method: apiMethod,
         body: submitData,
       });
 
@@ -211,7 +215,7 @@ export default function TabIK() {
 
       setShowSuccess(true);
       setTimeout(() => {
-        router.push("/dashboard");
+        router.push("/work-permits"); // Kembali ke halaman utama / tabel
         router.refresh();
       }, 2800);
     } catch (err: any) {
@@ -237,11 +241,13 @@ export default function TabIK() {
               Pengajuan Berhasil
             </p>
             <h3 className="mb-2 text-xl font-black text-[#0F1F3D]">
-              Dokumen K3 Diajukan!
+              {formData.editMode
+                ? "Revisi Berhasil Dikirim!"
+                : "Dokumen K3 Diajukan!"}
             </h3>
             <p className="text-sm text-slate-500">
-              Semua dokumen telah tersimpan ke sistem. Mengalihkan ke
-              dashboard...
+              Semua dokumen telah tersimpan ke sistem. Mengalihkan ke daftar
+              pengajuan...
             </p>
             <div className="mt-6 flex gap-1.5">
               {[0, 75, 150].map((delay) => (
@@ -365,9 +371,11 @@ export default function TabIK() {
         </div>
         <p className="text-sm leading-relaxed text-slate-600">
           Dengan menekan{" "}
-          <span className="font-bold text-[#0F1F3D]">Ajukan Dokumen K3</span>,
-          Anda selaku Penanggung Jawab Teknik memastikan bahwa seluruh data Work
-          Permit beserta dokumen pendukungnya{" "}
+          <span className="font-bold text-[#0F1F3D]">
+            {formData.editMode ? "Kirim Ulang Revisi" : "Ajukan Dokumen K3"}
+          </span>
+          , Anda selaku Penanggung Jawab Teknik memastikan bahwa seluruh data
+          Work Permit beserta dokumen pendukungnya{" "}
           <span className="font-semibold">(JSA, HIRARC, SOP, IK)</span> telah
           ditinjau dan sesuai dengan kondisi lapangan aktual.
         </p>
@@ -378,7 +386,12 @@ export default function TabIK() {
         <div className="flex items-center gap-4">
           <button
             type="button"
-            onClick={() => router.push("/work-permits/create/sop")}
+            onClick={() => {
+              const queryStr = formData.editId
+                ? `?editId=${formData.editId}`
+                : "";
+              router.push(`/work-permits/create/sop${queryStr}`);
+            }}
             disabled={isSubmitting || showSuccess}
             className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-slate-50 disabled:opacity-40"
           >
@@ -404,7 +417,7 @@ export default function TabIK() {
           ) : (
             <>
               <Send size={15} />
-              Ajukan Dokumen K3
+              {formData.editMode ? "Kirim Ulang Revisi" : "Ajukan Dokumen K3"}
             </>
           )}
         </button>

@@ -47,7 +47,9 @@ function EquipCard({
   return (
     <div className="flex flex-col rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="flex items-center gap-3 rounded-t-2xl border-b border-slate-100 px-5 py-3.5">
-        <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${iconBg}`}>
+        <div
+          className={`flex h-8 w-8 items-center justify-center rounded-lg ${iconBg}`}
+        >
           <Icon size={15} className={iconColor} />
         </div>
         <span className="text-xs font-black uppercase tracking-widest text-[#0F1F3D]">
@@ -90,8 +92,12 @@ export default function TabSOP() {
   }, []);
 
   const selectedJob = jobTemplates.find((j) => j._id === formData.pekerjaanId);
-  const selectedPjTeknik = allPersonnel.find((p) => p._id === formData.pjTeknik);
-  const selectedAhliK3 = allPersonnel.find((p) => p._id === formData.tenagaAhliK3);
+  const selectedPjTeknik = allPersonnel.find(
+    (p) => p._id === formData.pjTeknik,
+  );
+  const selectedAhliK3 = allPersonnel.find(
+    (p) => p._id === formData.tenagaAhliK3,
+  );
 
   // ✅ Baca dari sopDocs (array baru)
   const sopDocs: any[] = formData.sopDocs || [];
@@ -159,23 +165,29 @@ export default function TabSOP() {
               </div>
 
               {/* Judul Uraian Kegiatan */}
-              <SectionCard title="Judul Uraian Kegiatan" icon={FileText} badge="Read Only">
+              <SectionCard
+                title="Judul Uraian Kegiatan"
+                icon={FileText}
+                badge="Read Only"
+              >
                 <div className="min-h-[6rem]">
                   <FormattedText text={sop.judulUraianKegiatan} />
                 </div>
               </SectionCard>
 
               {/* Uraian Kegiatan */}
-              <SectionCard title="Uraian Kegiatan" icon={FileText} badge="Read Only">
+              <SectionCard
+                title="Uraian Kegiatan"
+                icon={FileText}
+                badge="Read Only"
+              >
                 <div className="min-h-[10rem]">
                   <FormattedText text={sop.uraianKegiatan} />
                 </div>
               </SectionCard>
 
               {/* Divider antar dokumen */}
-              {idx < sopDocs.length - 1 && (
-                <hr className="border-slate-200" />
-              )}
+              {idx < sopDocs.length - 1 && <hr className="border-slate-200" />}
             </div>
           ))}
         </div>
@@ -199,8 +211,14 @@ export default function TabSOP() {
         totalSteps={5}
         backLabel="HIRARC"
         nextLabel="Lanjut ke Instruksi Kerja"
-        onBack={() => router.push("/work-permits/create/hirarc")}
-        onNext={() => router.push("/work-permits/create/ik")}
+        onBack={() => {
+          const queryStr = formData.editId ? `?editId=${formData.editId}` : "";
+          router.push(`/work-permits/create/hirarc${queryStr}`);
+        }}
+        onNext={() => {
+          const queryStr = formData.editId ? `?editId=${formData.editId}` : "";
+          router.push(`/work-permits/create/ik${queryStr}`);
+        }}
       />
     </div>
   );

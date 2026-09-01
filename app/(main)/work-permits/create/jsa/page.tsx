@@ -283,7 +283,8 @@ export default function TabJSA() {
       return;
     }
     setErrorMsg("");
-    router.push("/work-permits/create/hirarc");
+    const queryStr = formData.editId ? `?editId=${formData.editId}` : "";
+    router.push(`/work-permits/create/hirarc${queryStr}`);
   };
 
   const selectedJob = jobTemplates.find((j) => j._id === formData.pekerjaanId);
@@ -457,7 +458,10 @@ export default function TabJSA() {
         totalSteps={5}
         backLabel="Work Permit"
         nextLabel="Lanjut ke HIRARC"
-        onBack={() => router.push("/work-permits/create/work-permit")}
+        onBack={() => {
+          const queryStr = formData.editId ? `?editId=${formData.editId}` : "";
+          router.push(`/work-permits/create/work-permit${queryStr}`);
+        }}
         onNext={handleNext}
       />
     </div>

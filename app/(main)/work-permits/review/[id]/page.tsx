@@ -24,6 +24,7 @@ import {
   Copy,
   History,
   IdCard,
+  Edit,
 } from "lucide-react";
 
 // Helper Component: Menampilkan List Array
@@ -103,7 +104,7 @@ export default function WorkPermitDetailPage() {
   const [catatanPenolakan, setCatatanPenolakan] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
 
-  // Re-submit (Duplikasi) States
+  // Re-submit / Revisi States
   const [isResubmitModalOpen, setIsResubmitModalOpen] = useState(false);
   const [newTanggalMulai, setNewTanggalMulai] = useState("");
   const [newWaktuMulai, setNewWaktuMulai] = useState("");
@@ -162,6 +163,17 @@ export default function WorkPermitDetailPage() {
     window.open(`/work-permits/print/${id}`, "_blank");
   };
 
+  const openResubmitModal = () => {
+    setNewWaktuMulai(permit.waktuMulai);
+    setNewWaktuSelesai(permit.waktuSelesai);
+    // Jika ditolak, auto-isi dengan tanggal lama agar mudah diedit
+    if (permit.status === "rejected") {
+      setNewTanggalMulai(permit.tanggalMulai);
+      setNewTanggalSelesai(permit.tanggalSelesai);
+    }
+    setIsResubmitModalOpen(true);
+  };
+
   const handleResubmit = async () => {
     if (
       !newTanggalMulai ||
@@ -198,11 +210,13 @@ export default function WorkPermitDetailPage() {
         ikData: permit.ikData,
       };
 
+      const isRevision = permit.status === "rejected";
       const submitData = new FormData();
       submitData.append("payloadData", JSON.stringify(payload));
 
-      // ✅ Pakai Base64 dari server, convert jadi File langsung (Aman dari block ISP)
-      if (permit.fileKtpBase64) {
+      // ✅ JIKA INI PERPANJANGAN (POST BARU): Kita harus men-download ulang Base64 KTP dan mengirimkannya
+      // ✅ JIKA INI REVISI (PUT UPDATE): Backend sudah punya fileKtp, jadi kita hemat waktu dan kuota dengan tidak usah kirim file lagi
+      if (!isRevision && permit.fileKtpBase64) {
         const ktpRes = await fetch(permit.fileKtpBase64);
         const ktpBlob = await ktpRes.blob();
         submitData.append(
@@ -214,9 +228,15 @@ export default function WorkPermitDetailPage() {
         );
       }
 
-      const res = await fetch("/api/work-permits", {
-        method: "POST",
-        body: submitData, // Kirim tanpa header Content-Type agar otomatis ter-set multipart/form-data
+      // Endpoint dan Metode Dinamis
+      const apiEndpoint = isRevision
+        ? `/api/work-permits/${id}`
+        : "/api/work-permits";
+      const apiMethod = isRevision ? "PUT" : "POST";
+
+      const res = await fetch(apiEndpoint, {
+        method: apiMethod,
+        body: submitData,
       });
 
       const result = await res.json();
@@ -228,7 +248,7 @@ export default function WorkPermitDetailPage() {
           router.refresh();
         }, 3000);
       } else {
-        alert(result.message || "Gagal membuat pengajuan baru.");
+        alert(result.message || "Gagal memproses dokumen.");
         setIsSubmitting(false);
       }
     } catch (error) {
@@ -236,12 +256,6 @@ export default function WorkPermitDetailPage() {
       alert("Terjadi kesalahan sistem saat mencoba re-submit.");
       setIsSubmitting(false);
     }
-  };
-
-  const openResubmitModal = () => {
-    setNewWaktuMulai(permit.waktuMulai);
-    setNewWaktuSelesai(permit.waktuSelesai);
-    setIsResubmitModalOpen(true);
   };
 
   if (loading) {
@@ -266,9 +280,11 @@ export default function WorkPermitDetailPage() {
   const pelaksanaList = permit.pelaksana || [];
   const historyList = permit.history || [];
 
-  // Konfigurasi Display KTP dari Base64
   const ktpSource = permit.fileKtpBase64 || "";
   const isPdf = ktpSource.includes("application/pdf");
+
+  // Penentu Tipe Modal
+  const isRevision = permit.status === "rejected";
 
   return (
     <div className="relative min-h-full w-full bg-[#F7F8FA] p-6 md:p-8">
@@ -337,17 +353,25 @@ export default function WorkPermitDetailPage() {
         </div>
       )}
 
-      {/* ── MODAL AJUKAN ULANG ── */}
+      {/* ── MODAL AJUKAN ULANG / REVISI ── */}
       {isResubmitModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0F1F3D]/60 p-4 backdrop-blur-sm">
           <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
             <h2 className="flex items-center gap-2 text-lg font-black text-[#0F1F3D]">
-              <Copy className="text-blue-600" /> Ajukan Ulang / Perpanjang
+              {isRevision ? (
+                <>
+                  <Edit className="text-amber-500" /> Revisi & Ajukan Ulang
+                </>
+              ) : (
+                <>
+                  <Copy className="text-blue-600" /> Perpanjang Dokumen Baru
+                </>
+              )}
             </h2>
             <p className="mt-2 text-sm text-slate-500">
-              Pengajuan baru akan dibuat menyalin dokumen saat ini (termasuk
-              dokumen KTP). Silakan atur jadwal pelaksanaan (Tanggal & Waktu)
-              yang baru.
+              {isRevision
+                ? "Anda akan memperbarui jadwal pelaksanaan pada dokumen yang ditolak tanpa membuat nomor pengajuan baru."
+                : "Pengajuan baru akan dibuat menyalin dokumen saat ini. Silakan atur jadwal pelaksanaan (Tanggal & Waktu) yang baru."}
             </p>
             <div className="mt-5 grid grid-cols-2 gap-4 rounded-xl border border-slate-100 bg-slate-50 p-4">
               <div>
@@ -411,9 +435,17 @@ export default function WorkPermitDetailPage() {
                   !newWaktuSelesai ||
                   isSubmitting
                 }
-                className="rounded-xl bg-blue-600 px-5 py-2 text-sm font-bold text-white shadow-sm hover:bg-blue-700 disabled:opacity-50"
+                className={`rounded-xl px-5 py-2 text-sm font-bold text-white shadow-sm disabled:opacity-50 ${
+                  isRevision
+                    ? "bg-amber-500 hover:bg-amber-600"
+                    : "bg-blue-600 hover:bg-blue-700"
+                }`}
               >
-                {isSubmitting ? "Menyimpan..." : "Buat Pengajuan Baru"}
+                {isSubmitting
+                  ? "Menyimpan..."
+                  : isRevision
+                    ? "Kirim Perbaikan"
+                    : "Buat Pengajuan Baru"}
               </button>
             </div>
           </div>
@@ -503,15 +535,31 @@ export default function WorkPermitDetailPage() {
                 onClick={openResubmitModal}
                 className="inline-flex items-center gap-2 rounded-lg bg-[#0F1F3D] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#1a3561]"
               >
-                <Copy size={16} /> Ajukan Ulang / Perpanjang
+                <Copy size={16} /> Perpanjang Dokumen Baru
               </button>
             </>
+          )}
+
+          {/* TOMBOL REVISI KHUSUS UNTUK PJ TEKNIK JIKA DITOLAK */}
+          {/* JADIKAN SEPERTI INI */}
+          {/* TOMBOL REVISI KHUSUS UNTUK PJ TEKNIK JIKA DITOLAK */}
+          {isPjTeknik && permit.status === "rejected" && (
+            <button
+              onClick={() =>
+                router.push(`/work-permits/create/work-permit?editId=${id}`)
+              }
+              className="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2 text-sm font-bold text-white transition hover:bg-amber-600"
+            >
+              <Edit size={16} /> Revisi & Ajukan Ulang
+            </button>
           )}
 
           {((!isK3 && !isDirektur && !isPjTeknik) ||
             (isK3 && permit.status !== "submitted") ||
             (isDirektur && permit.status !== "approved_k3") ||
-            (isPjTeknik && permit.status !== "approved_director")) && (
+            (isPjTeknik &&
+              permit.status !== "approved_director" &&
+              permit.status !== "rejected")) && (
             <span className="px-3 text-xs font-semibold text-slate-400">
               Hanya lihat (Read-Only)
             </span>
@@ -529,6 +577,10 @@ export default function WorkPermitDetailPage() {
               </p>
               <p className="mt-1 text-sm text-red-700">
                 {permit.catatanPenolakan}
+              </p>
+              <p className="mt-2 text-xs italic text-red-500">
+                Silakan gunakan tombol "Revisi & Ajukan Ulang" di atas jika Anda
+                ingin memperbarui tanggal.
               </p>
             </div>
           </div>
@@ -693,7 +745,6 @@ export default function WorkPermitDetailPage() {
           accent="bg-blue-600"
         >
           <div className="mb-6 flex flex-col md:flex-row gap-4">
-            {/* Daftar Pelaksana Block */}
             <div className="flex-1 rounded-xl border border-blue-100 bg-blue-50/50 p-4">
               <p className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-500">
                 <Users size={14} /> Daftar Pelaksana Pekerjaan
@@ -710,12 +761,10 @@ export default function WorkPermitDetailPage() {
               </div>
             </div>
 
-            {/* KTP Block (Render via Base64, Aman dari Blokir ISP) */}
             <div className="flex flex-1 flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
               <p className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-500">
                 <IdCard size={14} /> Identitas Pelaksana
               </p>
-
               {ktpSource ? (
                 <>
                   <div className="flex min-h-[160px] flex-1 items-center justify-center overflow-hidden rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 p-2">
@@ -733,7 +782,6 @@ export default function WorkPermitDetailPage() {
                       />
                     )}
                   </div>
-                  {/* Unduh KTP */}
                   <a
                     href={ktpSource}
                     download={`KTP-${permit.nomorWP}`}

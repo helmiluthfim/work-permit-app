@@ -256,8 +256,14 @@ export default function TabHIRARC() {
         totalSteps={5}
         backLabel="JSA"
         nextLabel="Lanjut ke SOP"
-        onBack={() => router.push("/work-permits/create/jsa")}
-        onNext={() => router.push("/work-permits/create/sop")}
+        onBack={() => {
+          const queryStr = formData.editId ? `?editId=${formData.editId}` : "";
+          router.push(`/work-permits/create/jsa${queryStr}`);
+        }}
+        onNext={() => {
+          const queryStr = formData.editId ? `?editId=${formData.editId}` : "";
+          router.push(`/work-permits/create/sop${queryStr}`);
+        }}
       />
     </div>
   );

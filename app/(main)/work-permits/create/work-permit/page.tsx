@@ -17,6 +17,7 @@ import {
   ChevronDown,
   Sparkles,
   Upload,
+  CheckCircle2,
 } from "lucide-react";
 import { WorkPermitFormContext } from "../layout";
 
@@ -112,6 +113,9 @@ export default function TabWorkPermit() {
   const [isFetching, setIsFetching] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
 
+  // ✅ TAMBAHAN: State untuk menyimpan URL sementara dari gambar (preview)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
   useEffect(() => {
     const fetchMasterData = async () => {
       try {
@@ -134,6 +138,19 @@ export default function TabWorkPermit() {
     };
     fetchMasterData();
   }, []);
+
+  // ✅ TAMBAHAN: Generate Image Preview URL setiap kali ada file KTP baru
+  useEffect(() => {
+    if (formData.fileKtp && formData.fileKtp.type.startsWith("image/")) {
+      const objectUrl = URL.createObjectURL(formData.fileKtp);
+      setPreviewUrl(objectUrl);
+
+      // Membersihkan object URL ketika komponen di-unmount atau file diganti
+      return () => URL.revokeObjectURL(objectUrl);
+    } else {
+      setPreviewUrl(null); // Jika PDF atau file lain, tidak ada preview gambar
+    }
+  }, [formData.fileKtp]);
 
   const handleJobChange = (jobId: string) => {
     const selectedJob = jobTemplates.find((j) => j._id === jobId);
@@ -261,10 +278,9 @@ export default function TabWorkPermit() {
       noTelpPjTeknik,
       tenagaAhliK3,
       noTelpTenagaAhliK3,
-      fileKtp, // Validasi untuk file KTP
+      fileKtp,
     } = formData;
 
-    // Validasi field wajib
     if (
       !pekerjaanId ||
       !lokasi ||
@@ -276,7 +292,7 @@ export default function TabWorkPermit() {
       !noTelpPjTeknik ||
       !tenagaAhliK3 ||
       !noTelpTenagaAhliK3 ||
-      !fileKtp
+      (!fileKtp && !formData.existingKtp)
     ) {
       setErrorMsg(
         "Semua kolom bertanda (*) wajib diisi (termasuk dokumen KTP) sebelum lanjut ke tab JSA.",
@@ -300,7 +316,8 @@ export default function TabWorkPermit() {
     }
 
     setErrorMsg("");
-    router.push("/work-permits/create/jsa");
+    const queryStr = formData.editId ? `?editId=${formData.editId}` : "";
+    router.push(`/work-permits/create/jsa${queryStr}`);
   };
 
   if (isFetching) {
@@ -342,6 +359,7 @@ export default function TabWorkPermit() {
                 value={formData.pekerjaanId}
                 onChange={(e) => handleJobChange(e.target.value)}
                 className={selectClass}
+                disabled={formData.editMode} // Disable ubah template saat revisi
               >
                 <option value="" disabled>
                   — Pilih template pekerjaan —
@@ -357,6 +375,11 @@ export default function TabWorkPermit() {
                 className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
               />
             </div>
+            {formData.editMode && (
+              <p className="mt-2 text-xs text-slate-500 italic">
+                *Template pekerjaan tidak dapat diubah pada saat proses revisi.
+              </p>
+            )}
           </div>
 
           {/* Template preview */}
@@ -609,20 +632,37 @@ export default function TabWorkPermit() {
               </p>
             </div>
 
-            {/* Indikator File Berhasil Dipilih */}
-            {formData.fileKtp && (
-              <div className="mt-3 flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-green-700">
-                <FileText size={18} />
-                <div className="flex flex-col">
+            {/* ✅ PERUBAHAN: Menampilkan Preview KTP yang dipilih */}
+            {formData.fileKtp ? (
+              <div className="mt-3 flex items-center gap-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-green-700 animate-in zoom-in-95 duration-200">
+                {previewUrl ? (
+                  <img
+                    src={previewUrl}
+                    alt="Preview KTP"
+                    className="h-14 w-20 rounded bg-white object-cover shadow-sm ring-1 ring-black/5"
+                  />
+                ) : (
+                  <div className="flex h-14 w-20 items-center justify-center rounded bg-white shadow-sm ring-1 ring-black/5">
+                    <FileText size={24} className="opacity-80" />
+                  </div>
+                )}
+
+                <div className="flex flex-col overflow-hidden">
                   <span className="text-sm font-bold leading-none">
                     File terpilih
                   </span>
-                  <span className="mt-1 text-xs opacity-80">
+                  <span className="mt-1.5 truncate text-xs font-medium opacity-80">
                     {formData.fileKtp.name}
                   </span>
                 </div>
               </div>
-            )}
+            ) : formData.existingKtp ? (
+              <div className="mt-3 flex items-center gap-2 rounded-xl bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700">
+                <CheckCircle2 size={16} />
+                KTP lama Anda telah tersimpan. Unggah file baru HANYA JIKA Anda
+                ingin menggantinya.
+              </div>
+            ) : null}
           </div>
         </div>
       </SectionCard>

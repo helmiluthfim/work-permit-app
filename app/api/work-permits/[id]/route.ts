@@ -8,6 +8,9 @@ import { createNotification } from "@/lib/createNotification";
 
 export const dynamic = "force-dynamic";
 
+// ========================================================
+// GET: MENGAMBIL DETAIL SATU WORK PERMIT
+// ========================================================
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -42,14 +45,12 @@ export async function GET(
     // ✅ FETCH KTP DI SERVER (VERCEL) UNTUK MENGHINDARI BLOKIR ISP
     if (workPermit.fileKtp) {
       try {
-        // Ganti dengan URL R2 Public Anda (bisa pakai process.env.R2_PUBLIC_URL)
         const R2_BASE_URL =
           process.env.R2_PUBLIC_URL || "https://pub-xxxx.r2.dev";
         const fileUrl = workPermit.fileKtp.startsWith("http")
           ? workPermit.fileKtp
           : `${R2_BASE_URL.replace(/\/$/, "")}/${workPermit.fileKtp.replace(/^\//, "")}`;
 
-        // Vercel server mengambil file dari R2
         const response = await fetch(fileUrl);
         if (response.ok) {
           const arrayBuffer = await response.arrayBuffer();
@@ -58,8 +59,6 @@ export async function GET(
           const mimeType = fileUrl.toLowerCase().endsWith(".pdf")
             ? "application/pdf"
             : "image/jpeg";
-
-          // Sisipkan base64 langsung ke dalam object data
           workPermit.fileKtpBase64 = `data:${mimeType};base64,${base64}`;
         }
       } catch (err) {
@@ -106,7 +105,6 @@ export async function GET(
       { status: 200 },
     );
   } catch (error: any) {
-    console.error("Error GET Detail WP:", error);
     return NextResponse.json(
       { success: false, message: error.message },
       { status: 500 },
@@ -123,17 +121,15 @@ export async function PATCH(
 ) {
   try {
     await connectDB();
-
     const resolvedParams = await params;
     const id = resolvedParams.id;
 
     const session = await getServerSession(authOption);
-    if (!session) {
+    if (!session)
       return NextResponse.json(
         { success: false, message: "Unauthorized" },
         { status: 401 },
       );
-    }
 
     const body = await req.json();
     const { status, catatanPenolakan } = body;
@@ -151,7 +147,6 @@ export async function PATCH(
       );
     }
 
-    // ✅ 1. Ekstrak informasi user dari session untuk dicatat dalam History
     const userSession = session.user as any;
     const actionByName =
       userSession?.nama ||
@@ -160,18 +155,13 @@ export async function PATCH(
       "Sistem";
     const actionByRole = userSession?.role || "UNKNOWN";
 
-    // ✅ 2. Siapkan Data History Baru
     const newHistoryRecord = {
       status: status,
-      actionBy: {
-        nama: actionByName,
-        role: actionByRole,
-      },
+      actionBy: { nama: actionByName, role: actionByRole },
       catatan: status === "rejected" ? catatanPenolakan || "" : "",
       createdAt: new Date(),
     };
 
-    // ✅ 3. Gunakan $set untuk field biasa, dan $push untuk array history
     const updateQuery: any = {
       $set: { status },
       $push: { history: newHistoryRecord },
@@ -183,29 +173,24 @@ export async function PATCH(
       updateQuery.$set.catatanPenolakan = "";
     }
 
-    // ✅ 4. Update Database
     const updatedWorkPermit = await WorkPermit.findByIdAndUpdate(
       id,
       updateQuery,
       { new: true, runValidators: true },
     );
-
-    if (!updatedWorkPermit) {
+    if (!updatedWorkPermit)
       return NextResponse.json(
         { success: false, message: "Data tidak ditemukan" },
         { status: 404 },
       );
-    }
 
-    // ── Cari user PJ Teknik pemilik dokumen untuk notif balik ──
     const pjTeknikUser = await User.findById(updatedWorkPermit.createdBy);
 
-    // ── Kirim notifikasi berdasarkan status baru ──
     if (status === "approved_k3") {
       await createNotification({
         recipientRole: "DIREKTUR",
         title: "Work Permit Menunggu Pengesahan",
-        message: `Work Permit ${updatedWorkPermit.nomorWP} telah disetujui K3 dan menunggu pengesahan Anda`,
+        message: `Work Permit ${updatedWorkPermit.nomorWP} disetujui K3, menunggu pengesahan Anda`,
         type: "APPROVE",
         documentId: updatedWorkPermit._id.toString(),
       });
@@ -223,7 +208,7 @@ export async function PATCH(
           recipientRole: "PJ_TEKNIK",
           recipientId: pjTeknikUser._id.toString(),
           title: "Work Permit Anda Telah Disahkan",
-          message: `Work Permit ${updatedWorkPermit.nomorWP} telah disahkan oleh Direktur dan siap digunakan`,
+          message: `Work Permit ${updatedWorkPermit.nomorWP} telah disahkan dan siap digunakan`,
           type: "RATIFY",
           documentId: updatedWorkPermit._id.toString(),
         });
@@ -250,9 +235,94 @@ export async function PATCH(
       { status: 200 },
     );
   } catch (error: any) {
-    console.error("Error PATCH Status WP:", error);
     return NextResponse.json(
-      { success: false, message: error.message || "Gagal memperbarui status" },
+      { success: false, message: error.message },
+      { status: 500 },
+    );
+  }
+}
+
+// ========================================================
+// PUT: MENGEDIT WORK PERMIT YANG DITOLAK (REVISI)
+// ========================================================
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    await connectDB();
+    const resolvedParams = await params;
+    const id = resolvedParams.id;
+
+    const session = await getServerSession(authOption);
+    if (!session)
+      return NextResponse.json(
+        { success: false, message: "Unauthorized" },
+        { status: 401 },
+      );
+
+    const formData = await req.formData();
+    const payloadData = formData.get("payloadData") as string;
+    if (!payloadData)
+      return NextResponse.json(
+        { success: false, message: "Payload kosong" },
+        { status: 400 },
+      );
+
+    const payload = JSON.parse(payloadData);
+    const userSession = session.user as any;
+    const actionByName =
+      userSession?.nama ||
+      userSession?.name ||
+      userSession?.username ||
+      "Sistem";
+
+    const newHistoryRecord = {
+      status: "submitted",
+      actionBy: { nama: actionByName, role: userSession?.role || "UNKNOWN" },
+      catatan: "Dokumen direvisi dan diajukan ulang oleh PJ Teknik",
+      createdAt: new Date(),
+    };
+
+    // Update query: set data baru, ubah status kembali jadi submitted, kosongkan catatan penolakan
+    const updateQuery: any = {
+      $set: {
+        ...payload,
+        status: "submitted",
+        catatanPenolakan: "",
+      },
+      $push: { history: newHistoryRecord },
+    };
+
+    // (Catatan: Kita tidak perlu update fileKtp, karena KTP sudah ada di database dokumen ini)
+
+    const updatedWorkPermit = await WorkPermit.findByIdAndUpdate(
+      id,
+      updateQuery,
+      { new: true, runValidators: true },
+    );
+    if (!updatedWorkPermit)
+      return NextResponse.json(
+        { success: false, message: "Data tidak ditemukan" },
+        { status: 404 },
+      );
+
+    // Notifikasi kembali ke K3
+    await createNotification({
+      recipientRole: "TENAGA_AHLI_K3",
+      title: "Work Permit Direvisi",
+      message: `Work Permit ${updatedWorkPermit.nomorWP} telah diperbaiki oleh PJ Teknik dan menunggu tinjauan Anda.`,
+      type: "APPROVE",
+      documentId: updatedWorkPermit._id.toString(),
+    });
+
+    return NextResponse.json(
+      { success: true, message: "Berhasil direvisi", data: updatedWorkPermit },
+      { status: 200 },
+    );
+  } catch (error: any) {
+    return NextResponse.json(
+      { success: false, message: error.message },
       { status: 500 },
     );
   }
