@@ -6,7 +6,21 @@ import WorkPermit from "@/models/WorkPermit";
 import User from "@/models/User";
 import { createNotification } from "@/lib/createNotification";
 
+// ✅ TAMBAHAN: Import library S3 untuk upload KTP ke Cloudflare R2
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+
 export const dynamic = "force-dynamic";
+
+// ✅ TAMBAHAN: Konfigurasi R2 Client
+// Pastikan variabel env ini sudah ada di file .env Anda (sama seperti fungsi POST)
+const s3Client = new S3Client({
+  region: "auto",
+  endpoint: process.env.R2_ENDPOINT as string,
+  credentials: {
+    accessKeyId: process.env.R2_ACCESS_KEY_ID as string,
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY as string,
+  },
+});
 
 // ========================================================
 // GET: MENGAMBIL DETAIL SATU WORK PERMIT
@@ -42,7 +56,7 @@ export async function GET(
       );
     }
 
-    // ✅ FETCH KTP DI SERVER (VERCEL) UNTUK MENGHINDARI BLOKIR ISP
+    // FETCH KTP DI SERVER (VERCEL) UNTUK MENGHINDARI BLOKIR ISP
     if (workPermit.fileKtp) {
       try {
         const R2_BASE_URL =
@@ -263,6 +277,10 @@ export async function PUT(
 
     const formData = await req.formData();
     const payloadData = formData.get("payloadData") as string;
+
+    // ✅ TAMBAHAN: Tangkap file KTP revisi dari request frontend
+    const fileKtp = formData.get("fileKtp") as File | null;
+
     if (!payloadData)
       return NextResponse.json(
         { success: false, message: "Payload kosong" },
@@ -284,7 +302,7 @@ export async function PUT(
       createdAt: new Date(),
     };
 
-    // Update query: set data baru, ubah status kembali jadi submitted, kosongkan catatan penolakan
+    // Siapkan update data
     const updateQuery: any = {
       $set: {
         ...payload,
@@ -294,20 +312,51 @@ export async function PUT(
       $push: { history: newHistoryRecord },
     };
 
-    // (Catatan: Kita tidak perlu update fileKtp, karena KTP sudah ada di database dokumen ini)
+    // ✅ TAMBAHAN: Logika Upload Jika Ada Foto KTP Baru
+    if (fileKtp && fileKtp.size > 0) {
+      try {
+        const arrayBuffer = await fileKtp.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
 
+        const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+        const ext = fileKtp.name.split(".").pop();
+        const fileName = `ktp-${uniqueSuffix}.${ext}`; // Nama file unik
+
+        // Proses unggah ke Cloudflare R2
+        await s3Client.send(
+          new PutObjectCommand({
+            Bucket: process.env.R2_BUCKET_NAME as string,
+            Key: fileName,
+            Body: buffer,
+            ContentType: fileKtp.type,
+          }),
+        );
+
+        // Jika berhasil diunggah, tambahkan nama filenya ke database update
+        updateQuery.$set.fileKtp = fileName;
+      } catch (uploadError) {
+        console.error("Gagal mengunggah KTP revisi ke R2:", uploadError);
+        return NextResponse.json(
+          { success: false, message: "Gagal mengunggah dokumen KTP baru." },
+          { status: 500 },
+        );
+      }
+    }
+
+    // Eksekusi Update ke Database MongoDB
     const updatedWorkPermit = await WorkPermit.findByIdAndUpdate(
       id,
       updateQuery,
       { new: true, runValidators: true },
     );
+
     if (!updatedWorkPermit)
       return NextResponse.json(
         { success: false, message: "Data tidak ditemukan" },
         { status: 404 },
       );
 
-    // Notifikasi kembali ke K3
+    // Kirim Notifikasi kembali ke K3
     await createNotification({
       recipientRole: "TENAGA_AHLI_K3",
       title: "Work Permit Direvisi",
