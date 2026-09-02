@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useContext, useRef } from "react";
+import { useState, useEffect, useContext } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
@@ -17,14 +17,14 @@ import {
   ChevronDown,
   Sparkles,
   Upload,
-  CheckCircle2,
-  Trash2,
-  Image as ImageIcon,
+  CheckCircle2, // <-- Ditambahkan
 } from "lucide-react";
 import { WorkPermitFormContext } from "../layout";
 
 const arrayToText = (arr?: string[]) =>
   !arr || !Array.isArray(arr) ? "" : arr.join("\n");
+
+// ─── Reusable field components ───────────────────────────────────────────────
 
 function SectionCard({
   title,
@@ -67,8 +67,11 @@ function FieldLabel({
 
 const inputClass =
   "w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#0F1F3D] placeholder-slate-400 outline-none transition focus:border-[#0F1F3D] focus:bg-white focus:ring-2 focus:ring-[#0F1F3D]/10";
+
 const selectClass =
   "w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 pr-9 text-sm text-[#0F1F3D] outline-none transition focus:border-[#0F1F3D] focus:bg-white focus:ring-2 focus:ring-[#0F1F3D]/10 cursor-pointer";
+
+// ─── Template Preview Row ─────────────────────────────────────────────────────
 
 function TemplateRow({
   icon: Icon,
@@ -98,6 +101,8 @@ function TemplateRow({
   );
 }
 
+// ─── Main Component ───────────────────────────────────────────────────────────
+
 export default function TabWorkPermit() {
   const router = useRouter();
   const { formData, setFormData } = useContext(WorkPermitFormContext);
@@ -107,9 +112,6 @@ export default function TabWorkPermit() {
   const [ahliK3Options, setAhliK3Options] = useState<any[]>([]);
   const [isFetching, setIsFetching] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [previewKtp, setPreviewKtp] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchMasterData = async () => {
@@ -134,21 +136,6 @@ export default function TabWorkPermit() {
     fetchMasterData();
   }, []);
 
-  // ✅ Logika Pratinjau Gambar
-  useEffect(() => {
-    if (formData.fileKtp) {
-      // Jika ada file baru dipilih
-      const objectUrl = URL.createObjectURL(formData.fileKtp);
-      setPreviewKtp(objectUrl);
-      return () => URL.revokeObjectURL(objectUrl);
-    } else if (formData.fileKtpBase64) {
-      // Jika sedang merevisi dan ada Base64 KTP lama dari backend
-      setPreviewKtp(formData.fileKtpBase64);
-    } else {
-      setPreviewKtp(null);
-    }
-  }, [formData.fileKtp, formData.fileKtpBase64]);
-
   const handleJobChange = (jobId: string) => {
     const selectedJob = jobTemplates.find((j) => j._id === jobId);
     if (!selectedJob) return;
@@ -156,6 +143,8 @@ export default function TabWorkPermit() {
     setFormData((prev: any) => ({
       ...prev,
       pekerjaanId: jobId,
+
+      // Work Permit
       wpKlasifikasi: arrayToText(
         selectedJob.workPermitTemplate?.klasifikasiPekerjaan,
       ),
@@ -163,7 +152,60 @@ export default function TabWorkPermit() {
         selectedJob.workPermitTemplate?.prosedurPekerjaan,
       ),
       wpLampiran: arrayToText(selectedJob.workPermitTemplate?.lampiran),
-      // ... tab lainnya (JSA, HIRARC, dll) sesuai bawaan template
+
+      // JSA
+      jsaDocs: (selectedJob.jsaTemplate || []).map((jsa: any) => ({
+        judulJsa: jsa.judulJsa || "",
+        langkahKerja: arrayToText(jsa.langkahKerja),
+        bahayaResiko: arrayToText(jsa.bahayaResiko),
+        pengendalian: arrayToText(jsa.pengendalian),
+      })),
+
+      // HIRARC
+      hirarcPotensi: arrayToText(selectedJob.hirarcTemplate?.potensiBahaya),
+      hirarcResiko: arrayToText(selectedJob.hirarcTemplate?.resiko),
+      hirarcKeparahan: arrayToText(
+        selectedJob.hirarcTemplate?.konsekuensiKeparahan,
+      ),
+      hirarcKemungkinan: arrayToText(
+        selectedJob.hirarcTemplate?.kemungkinanTerjadi,
+      ),
+      hirarcTingkat: arrayToText(selectedJob.hirarcTemplate?.tingkatResiko),
+      hirarcPengendalian: arrayToText(selectedJob.hirarcTemplate?.pengendalian),
+      hirarcKeparahanSetelah: arrayToText(
+        selectedJob.hirarcTemplate?.konsekuensiSetelahPengendalian,
+      ),
+      hirarcKemungkinanSetelah: arrayToText(
+        selectedJob.hirarcTemplate?.kemungkinanTerjadiSetelahPengendalian,
+      ),
+      hirarcTingkatSetelah: arrayToText(
+        selectedJob.hirarcTemplate?.tingkatResikoSetelahPengendalian,
+      ),
+      hirarcStatusPengendalian:
+        selectedJob.hirarcTemplate?.statusPengendalian || "",
+      hirarcPenanggungJawab: arrayToText(
+        selectedJob.hirarcTemplate?.penanggungJawab,
+      ),
+
+      // SOP
+      sopDocs: (selectedJob.sopTemplate || []).map((sop: any) => ({
+        judulSop: sop.judulSop || "",
+        perlengkapanKerja: arrayToText(sop.perlengkapanKerja),
+        peralatanUkur: arrayToText(sop.peralatanUkur),
+        peralatanKerja: arrayToText(sop.peralatanKerja),
+        judulUraianKegiatan: arrayToText(sop.judulUraianKegiatan),
+        uraianKegiatan: arrayToText(sop.uraianKegiatan),
+      })),
+
+      // IK
+      ikDocs: (selectedJob.ikTemplate || []).map((ik: any) => ({
+        judulIk: ik.judulIk || "",
+        perlengkapanKerja: arrayToText(ik.perlengkapanKerja),
+        peralatanUkur: arrayToText(ik.peralatanUkur),
+        peralatanKerja: arrayToText(ik.peralatanKerja),
+        judulUraianKegiatan: arrayToText(ik.judulUraianKegiatan),
+        uraianKegiatan: arrayToText(ik.uraianKegiatan),
+      })),
     }));
   };
 
@@ -172,46 +214,40 @@ export default function TabWorkPermit() {
   ) => {
     if (errorMsg) setErrorMsg("");
     const { name, value } = e.target;
+
     setFormData((prev: any) => {
       const updated = { ...prev, [name]: value };
+
+      // Reset tanggal selesai jika tanggal mulai diubah melebihi tanggal selesai
       if (
         name === "tanggalMulai" &&
         prev.tanggalSelesai &&
         value > prev.tanggalSelesai
-      )
+      ) {
         updated.tanggalSelesai = "";
+      }
+
       return updated;
     });
   };
 
-  // ✅ Handler Ganti Foto (Seperti di Profil)
+  // Fungsi khusus untuk menangani upload file (KTP)
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (errorMsg) setErrorMsg("");
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const { name, files } = e.target;
 
-    if (file.size > 2 * 1024 * 1024) {
-      setErrorMsg("Ukuran file maksimal 2MB");
-      return;
+    if (files && files.length > 0) {
+      setFormData((prev: any) => ({
+        ...prev,
+        [name]: files[0], // Menyimpan object File ke dalam state
+      }));
+    } else {
+      setFormData((prev: any) => {
+        const updated = { ...prev };
+        delete updated[name];
+        return updated;
+      });
     }
-
-    setFormData((prev: any) => ({
-      ...prev,
-      fileKtp: file,
-      existingKtp: false, // Menandakan tidak lagi menggunakan KTP lama
-    }));
-  };
-
-  // ✅ Handler Hapus Foto (Batal Upload / Buang KTP Lama)
-  const handleDeleteKtp = () => {
-    setFormData((prev: any) => ({
-      ...prev,
-      fileKtp: null,
-      fileKtpBase64: null, // Hapus gambar lama dari tampilan
-      existingKtp: false, // Wajibkan user upload yang baru
-    }));
-    setPreviewKtp(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleNext = () => {
@@ -229,9 +265,8 @@ export default function TabWorkPermit() {
       fileKtp,
     } = formData;
 
-    // Periksa KTP: Jika tidak ada file baru DAN tidak menggunakan existingKtp, berarti wajib upload!
-    const isKtpMissing = !fileKtp && !formData.existingKtp;
-
+    // Validasi field wajib.
+    // ✅ PERUBAHAN: Jika ada existingKtp (berarti lagi revisi), maka fileKtp tidak wajib
     if (
       !pekerjaanId ||
       !lokasi ||
@@ -243,10 +278,24 @@ export default function TabWorkPermit() {
       !noTelpPjTeknik ||
       !tenagaAhliK3 ||
       !noTelpTenagaAhliK3 ||
-      isKtpMissing
+      (!fileKtp && !formData.existingKtp)
     ) {
       setErrorMsg(
         "Semua kolom bertanda (*) wajib diisi (termasuk dokumen KTP) sebelum lanjut ke tab JSA.",
+      );
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    if (tanggalSelesai < tanggalMulai) {
+      setErrorMsg("Tanggal selesai tidak boleh sebelum tanggal mulai.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    if (tanggalSelesai === tanggalMulai && waktuSelesai <= waktuMulai) {
+      setErrorMsg(
+        "Jam selesai harus setelah jam mulai jika tanggal pelaksanaan sama.",
       );
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
@@ -257,17 +306,24 @@ export default function TabWorkPermit() {
     router.push(`/work-permits/create/jsa${queryStr}`);
   };
 
-  if (isFetching)
+  if (isFetching) {
     return (
-      <div className="flex justify-center py-16">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-[#0F1F3D]" />
+      <div className="flex items-center justify-center py-16">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-[#0F1F3D]" />
+          <p className="text-sm font-medium text-slate-400">
+            Memuat referensi data...
+          </p>
+        </div>
       </div>
     );
+  }
 
   return (
     <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-300">
+      {/* ── ERROR BANNER ── */}
       {errorMsg && (
-        <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4">
+        <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 animate-in fade-in slide-in-from-top-2">
           <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-red-500" />
           <div>
             <p className="text-sm font-bold text-red-700">
@@ -289,7 +345,7 @@ export default function TabWorkPermit() {
                 value={formData.pekerjaanId}
                 onChange={(e) => handleJobChange(e.target.value)}
                 className={selectClass}
-                disabled={formData.editMode}
+                disabled={formData.editMode} // Disable ubah template saat revisi (opsional)
               >
                 <option value="" disabled>
                   — Pilih template pekerjaan —
@@ -312,12 +368,13 @@ export default function TabWorkPermit() {
             )}
           </div>
 
+          {/* Template preview */}
           {formData.pekerjaanId && (
             <div className="animate-in fade-in slide-in-from-top-2 duration-300">
               <div className="mb-3 flex items-center gap-2 rounded-lg bg-[#F5A623]/10 px-3 py-2">
                 <Sparkles size={13} className="text-[#F5A623]" />
                 <p className="text-xs font-bold text-[#0F1F3D]">
-                  Data template berhasil dimuat
+                  Data template berhasil dimuat — semua tab terisi otomatis
                 </p>
               </div>
               <div className="grid gap-3 sm:grid-cols-3">
@@ -347,57 +404,92 @@ export default function TabWorkPermit() {
 
       {/* ── 2. LOKASI ── */}
       <SectionCard title="Lokasi Pekerjaan" icon={MapPin}>
-        <FieldLabel required>Lokasi Aktual Pekerjaan</FieldLabel>
-        <input
-          type="text"
-          name="lokasi"
-          value={formData.lokasi}
-          onChange={handleChange}
-          placeholder="Contoh: Area Workshop Utama, Gedung B Lt. 2"
-          className={inputClass}
-        />
+        <div>
+          <FieldLabel required>Lokasi Aktual Pekerjaan</FieldLabel>
+          <input
+            type="text"
+            name="lokasi"
+            value={formData.lokasi}
+            onChange={handleChange}
+            placeholder="Contoh: Area Workshop Utama, Gedung B Lt. 2"
+            className={inputClass}
+          />
+        </div>
       </SectionCard>
 
       {/* ── 3. JADWAL ── */}
       <SectionCard title="Jadwal Pelaksanaan" icon={Calendar}>
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          {/* Mulai */}
           <div>
             <FieldLabel required>Tanggal &amp; Jam Mulai</FieldLabel>
             <div className="flex gap-2">
-              <input
-                type="date"
-                name="tanggalMulai"
-                value={formData.tanggalMulai}
-                onChange={handleChange}
-                className={`${inputClass} flex-1`}
-              />
-              <input
-                type="time"
-                name="waktuMulai"
-                value={formData.waktuMulai}
-                onChange={handleChange}
-                className={`${inputClass} w-32`}
-              />
+              <div className="relative flex-1">
+                <Calendar
+                  size={14}
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                />
+                <input
+                  type="date"
+                  name="tanggalMulai"
+                  value={formData.tanggalMulai}
+                  onChange={handleChange}
+                  className={`${inputClass} pl-9`}
+                />
+              </div>
+              <div className="relative">
+                <Clock
+                  size={14}
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                />
+                <input
+                  type="time"
+                  name="waktuMulai"
+                  value={formData.waktuMulai}
+                  onChange={handleChange}
+                  className={`${inputClass} pl-9 w-32`}
+                />
+              </div>
             </div>
           </div>
+
+          {/* Selesai */}
           <div>
             <FieldLabel required>Tanggal &amp; Jam Selesai</FieldLabel>
             <div className="flex gap-2">
-              <input
-                type="date"
-                name="tanggalSelesai"
-                value={formData.tanggalSelesai}
-                min={formData.tanggalMulai}
-                onChange={handleChange}
-                className={`${inputClass} flex-1`}
-              />
-              <input
-                type="time"
-                name="waktuSelesai"
-                value={formData.waktuSelesai}
-                onChange={handleChange}
-                className={`${inputClass} w-32`}
-              />
+              <div className="relative flex-1">
+                <Calendar
+                  size={14}
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                />
+                <input
+                  type="date"
+                  name="tanggalSelesai"
+                  value={formData.tanggalSelesai}
+                  onChange={handleChange}
+                  min={formData.tanggalMulai || undefined}
+                  className={`${inputClass} pl-9`}
+                />
+              </div>
+              <div className="relative">
+                <Clock
+                  size={14}
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                />
+                <input
+                  type="time"
+                  name="waktuSelesai"
+                  value={formData.waktuSelesai}
+                  onChange={handleChange}
+                  min={
+                    formData.tanggalSelesai &&
+                    formData.tanggalSelesai === formData.tanggalMulai
+                      ? formData.waktuMulai || undefined
+                      : undefined
+                  }
+                  className={`${inputClass} pl-9 w-32`}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -406,72 +498,101 @@ export default function TabWorkPermit() {
       {/* ── 4. PERSONEL ── */}
       <SectionCard title="Personel Bertanggung Jawab" icon={Users}>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+          {/* PJ Teknik */}
           <div className="space-y-3">
             <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
               <div className="h-2 w-2 rounded-full bg-[#0F1F3D]" />
-              <span className="text-xs font-black uppercase text-[#0F1F3D]">
+              <span className="text-xs font-black uppercase tracking-wide text-[#0F1F3D]">
                 PJ Teknik
               </span>
             </div>
             <div>
               <FieldLabel required>Nama PJ Teknik</FieldLabel>
-              <select
-                name="pjTeknik"
-                value={formData.pjTeknik}
-                onChange={handleChange}
-                className={selectClass}
-              >
-                <option value="">— Pilih PJ Teknik —</option>
-                {pjTeknikOptions.map((p) => (
-                  <option key={p._id} value={p._id}>
-                    {p.nama}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  name="pjTeknik"
+                  value={formData.pjTeknik}
+                  onChange={handleChange}
+                  className={selectClass}
+                >
+                  <option value="">— Pilih PJ Teknik —</option>
+                  {pjTeknikOptions.map((p) => (
+                    <option key={p._id} value={p._id}>
+                      {p.nama}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown
+                  size={16}
+                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+                />
+              </div>
             </div>
             <div>
               <FieldLabel required>No. Telepon</FieldLabel>
-              <input
-                type="tel"
-                name="noTelpPjTeknik"
-                value={formData.noTelpPjTeknik}
-                onChange={handleChange}
-                className={inputClass}
-              />
+              <div className="relative">
+                <Phone
+                  size={14}
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                />
+                <input
+                  type="tel"
+                  name="noTelpPjTeknik"
+                  value={formData.noTelpPjTeknik}
+                  onChange={handleChange}
+                  placeholder="08xx-xxxx-xxxx"
+                  className={`${inputClass} pl-9`}
+                />
+              </div>
             </div>
           </div>
+
+          {/* Tenaga Ahli K3 */}
           <div className="space-y-3">
             <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
               <div className="h-2 w-2 rounded-full bg-[#F5A623]" />
-              <span className="text-xs font-black uppercase text-[#0F1F3D]">
+              <span className="text-xs font-black uppercase tracking-wide text-[#0F1F3D]">
                 Tenaga Ahli K3
               </span>
             </div>
             <div>
               <FieldLabel required>Nama Ahli K3</FieldLabel>
-              <select
-                name="tenagaAhliK3"
-                value={formData.tenagaAhliK3}
-                onChange={handleChange}
-                className={selectClass}
-              >
-                <option value="">— Pilih Ahli K3 —</option>
-                {ahliK3Options.map((p) => (
-                  <option key={p._id} value={p._id}>
-                    {p.nama}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  name="tenagaAhliK3"
+                  value={formData.tenagaAhliK3}
+                  onChange={handleChange}
+                  className={selectClass}
+                >
+                  <option value="">— Pilih Ahli K3 —</option>
+                  {ahliK3Options.map((p) => (
+                    <option key={p._id} value={p._id}>
+                      {p.nama}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown
+                  size={16}
+                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+                />
+              </div>
             </div>
             <div>
               <FieldLabel required>No. Telepon</FieldLabel>
-              <input
-                type="tel"
-                name="noTelpTenagaAhliK3"
-                value={formData.noTelpTenagaAhliK3}
-                onChange={handleChange}
-                className={inputClass}
-              />
+              <div className="relative">
+                <Phone
+                  size={14}
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                />
+                <input
+                  type="tel"
+                  name="noTelpTenagaAhliK3"
+                  value={formData.noTelpTenagaAhliK3}
+                  onChange={handleChange}
+                  placeholder="08xx-xxxx-xxxx"
+                  className={`${inputClass} pl-9`}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -479,71 +600,45 @@ export default function TabWorkPermit() {
 
       {/* ── 5. DOKUMEN PENDUKUNG (Upload KTP) ── */}
       <SectionCard title="Dokumen Pendukung" icon={Upload}>
-        <div>
-          <div className="flex items-center justify-between mb-2">
+        <div className="space-y-4">
+          <div>
             <FieldLabel required>
               Upload KTP / Identitas Diri Pekerja
             </FieldLabel>
-            {formData.existingKtp && !formData.fileKtp && (
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600">
-                <CheckCircle2 size={13} /> Tersimpan
-              </span>
-            )}
-          </div>
-
-          <div className="mb-4 flex min-h-[140px] items-center justify-center rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 p-4">
-            {previewKtp ? (
-              <img
-                src={previewKtp}
-                alt="Pratinjau KTP"
-                className="max-h-40 object-contain rounded-md"
+            <div className="relative mt-1">
+              <input
+                type="file"
+                name="fileKtp"
+                accept="image/*,application/pdf"
+                onChange={handleFileChange}
+                className="block w-full text-sm text-slate-500 file:mr-4 file:cursor-pointer file:rounded-xl file:border-0 file:bg-[#0F1F3D]/10 file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-[#0F1F3D] hover:file:bg-[#0F1F3D]/20 focus:outline-none"
               />
-            ) : (
-              <div className="flex flex-col items-center gap-2 text-slate-400">
-                <ImageIcon size={28} strokeWidth={1.5} />
-                <p className="text-xs">Belum ada KTP yang diunggah</p>
-              </div>
-            )}
-          </div>
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            name="fileKtp"
-            accept="image/png,image/jpeg,image/webp,application/pdf"
-            onChange={handleFileChange}
-            className="hidden"
-            id="ktp-upload"
-          />
-
-          {previewKtp ? (
-            <div className="flex gap-2">
-              <label
-                htmlFor="ktp-upload"
-                className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
-              >
-                <Upload size={15} /> Ganti File
-              </label>
-              <button
-                type="button"
-                onClick={handleDeleteKtp}
-                className="flex shrink-0 items-center justify-center gap-2 rounded-lg border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-500 hover:bg-red-50"
-              >
-                <Trash2 size={15} /> Hapus
-              </button>
+              <p className="mt-2 text-xs text-slate-400">
+                Format yang didukung: JPG, PNG, atau PDF (Maksimal 2MB)
+              </p>
             </div>
-          ) : (
-            <label
-              htmlFor="ktp-upload"
-              className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-[#0F1F3D] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#0F1F3D]/90"
-            >
-              <Upload size={15} /> Pilih File KTP
-            </label>
-          )}
 
-          <p className="mt-3 text-[11px] text-slate-400 text-center">
-            Format yang didukung: JPG, PNG, atau PDF (Maksimal 2MB)
-          </p>
+            {/* ✅ PERUBAHAN: Indikator File Berhasil Dipilih atau Menggunakan KTP Lama */}
+            {formData.fileKtp ? (
+              <div className="mt-3 flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-green-700">
+                <FileText size={18} />
+                <div className="flex flex-col">
+                  <span className="text-sm font-bold leading-none">
+                    File terpilih
+                  </span>
+                  <span className="mt-1 text-xs opacity-80">
+                    {formData.fileKtp.name}
+                  </span>
+                </div>
+              </div>
+            ) : formData.existingKtp ? (
+              <div className="mt-3 flex items-center gap-2 rounded-xl bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700">
+                <CheckCircle2 size={16} />
+                KTP lama Anda telah tersimpan. Unggah file baru HANYA JIKA Anda
+                ingin menggantinya.
+              </div>
+            ) : null}
+          </div>
         </div>
       </SectionCard>
 
@@ -558,7 +653,8 @@ export default function TabWorkPermit() {
           onClick={handleNext}
           className="inline-flex items-center gap-2 rounded-xl bg-[#0F1F3D] px-6 py-2.5 text-sm font-bold text-white shadow-sm transition hover:-translate-y-px hover:bg-[#1a3561] active:scale-95"
         >
-          Lanjut ke JSA <ArrowRight size={15} />
+          Lanjut ke JSA
+          <ArrowRight size={15} />
         </button>
       </div>
     </div>
