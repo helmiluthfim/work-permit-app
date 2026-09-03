@@ -18,7 +18,6 @@ import {
   Sparkles,
   Upload,
   CheckCircle2,
-  Camera, // <-- Ditambahkan Ikon Kamera
 } from "lucide-react";
 import { WorkPermitFormContext } from "../layout";
 
@@ -232,17 +231,93 @@ export default function TabWorkPermit() {
     });
   };
 
-  // Fungsi khusus untuk menangani upload file (KTP)
+  // Fungsi khusus untuk menangani upload file (KTP) dengan Auto-Compress
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (errorMsg) setErrorMsg("");
     const { name, files } = e.target;
 
     if (files && files.length > 0) {
-      setFormData((prev: any) => ({
-        ...prev,
-        [name]: files[0], // Menyimpan object File ke dalam state
-      }));
+      const file = files[0];
+
+      // Jika file BUKAN gambar (misalnya PDF), langsung simpan tanpa dikompresi
+      if (!file.type.startsWith("image/")) {
+        setFormData((prev: any) => ({
+          ...prev,
+          [name]: file,
+        }));
+        return;
+      }
+
+      // Trik hemat memori: gunakan createObjectURL alih-alih FileReader (Base64)
+      const objectUrl = URL.createObjectURL(file);
+      const img = new Image();
+
+      img.onload = () => {
+        // 1. Segera bebaskan memori setelah gambar berhasil dimuat
+        URL.revokeObjectURL(objectUrl);
+
+        // 2. Siapkan Canvas untuk proses kompresi
+        const canvas = document.createElement("canvas");
+        const MAX_SIZE = 1280; // Maksimal resolusi aman agar tulisan KTP tetap terbaca
+        let width = img.width;
+        let height = img.height;
+
+        // 3. Kalkulasi rasio aspek agar gambar tidak gepeng
+        if (width > height) {
+          if (width > MAX_SIZE) {
+            height = Math.round(height * (MAX_SIZE / width));
+            width = MAX_SIZE;
+          }
+        } else {
+          if (height > MAX_SIZE) {
+            width = Math.round(width * (MAX_SIZE / height));
+            height = MAX_SIZE;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx?.drawImage(img, 0, 0, width, height);
+
+        // 4. Kompresi gambar menjadi JPEG dengan kualitas 70%
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              // Ubah Blob hasil kompresi menjadi objek File baru
+              const compressedFile = new File(
+                [blob],
+                file.name.replace(/\.[^/.]+$/, ".jpg"), // paksa ekstensi .jpg
+                {
+                  type: "image/jpeg",
+                  lastModified: Date.now(),
+                },
+              );
+
+              setFormData((prev: any) => ({
+                ...prev,
+                [name]: compressedFile,
+              }));
+            } else {
+              // Fallback jika kompresi gagal
+              setFormData((prev: any) => ({ ...prev, [name]: file }));
+            }
+          },
+          "image/jpeg",
+          0.7, // Kualitas: 0.7 (70%) sangat cukup untuk KTP dan menghemat ukuran
+        );
+      };
+
+      img.onerror = () => {
+        // Fallback jika gambar rusak atau gagal diload
+        URL.revokeObjectURL(objectUrl);
+        setFormData((prev: any) => ({ ...prev, [name]: file }));
+      };
+
+      // Picu pemuatan gambar
+      img.src = objectUrl;
     } else {
+      // Handle jika user membatalkan pilihan file
       setFormData((prev: any) => {
         const updated = { ...prev };
         delete updated[name];
@@ -605,42 +680,19 @@ export default function TabWorkPermit() {
             <FieldLabel required>
               Upload KTP / Identitas Diri Pekerja
             </FieldLabel>
-
-            {/* ✅ PERUBAHAN: Layout fleksibel untuk File Input dan Kamera */}
-            <div className="mt-1 flex flex-col sm:flex-row gap-3">
-              {/* Pilihan 1: File/Gallery Explorer */}
-              <div className="relative flex-1">
-                <input
-                  type="file"
-                  name="fileKtp"
-                  accept="image/*,application/pdf"
-                  onChange={handleFileChange}
-                  className="block w-full text-sm text-slate-500 file:mr-4 file:cursor-pointer file:rounded-xl file:border-0 file:bg-[#0F1F3D]/10 file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-[#0F1F3D] hover:file:bg-[#0F1F3D]/20 focus:outline-none"
-                />
-              </div>
-
-              {/* Pilihan 2: Ambil Foto Bawaan Kamera (Khusus Mobile) */}
-              <div className="relative">
-                <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#0F1F3D]/10 px-4 py-2.5 text-sm font-semibold text-[#0F1F3D] transition hover:bg-[#0F1F3D]/20">
-                  <Camera size={16} />
-                  <span>Ambil Foto</span>
-                  <input
-                    type="file"
-                    name="fileKtp"
-                    accept="image/*"
-                    capture="environment" // <-- Ini yang memicu kamera terbuka secara native
-                    onChange={handleFileChange}
-                    className="hidden" // Disembunyikan agar UI digantikan oleh label di atasnya
-                  />
-                </label>
-              </div>
+            <div className="relative mt-1">
+              <input
+                type="file"
+                name="fileKtp"
+                accept="image/*,application/pdf"
+                onChange={handleFileChange}
+                className="block w-full text-sm text-slate-500 file:mr-4 file:cursor-pointer file:rounded-xl file:border-0 file:bg-[#0F1F3D]/10 file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-[#0F1F3D] hover:file:bg-[#0F1F3D]/20 focus:outline-none"
+              />
+              <p className="mt-2 text-xs text-slate-400">
+                Format yang didukung: JPG, PNG, atau PDF (Maksimal 2MB)
+              </p>
             </div>
 
-            <p className="mt-2 text-xs text-slate-400">
-              Format yang didukung: JPG, PNG, atau PDF (Maksimal 2MB)
-            </p>
-
-            {/* Indikator File Berhasil Dipilih atau Menggunakan KTP Lama */}
             {formData.fileKtp ? (
               <div className="mt-3 flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-green-700">
                 <FileText size={18} />
@@ -656,7 +708,7 @@ export default function TabWorkPermit() {
             ) : formData.existingKtp ? (
               <div className="mt-3 flex items-center gap-2 rounded-xl bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700">
                 <CheckCircle2 size={16} />
-                KTP lama Anda telah tersimpan. Unggah/foto ulang HANYA JIKA Anda
+                KTP lama Anda telah tersimpan. Unggah file baru HANYA JIKA Anda
                 ingin menggantinya.
               </div>
             ) : null}
