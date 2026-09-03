@@ -17,7 +17,8 @@ import {
   ChevronDown,
   Sparkles,
   Upload,
-  CheckCircle2, // <-- Ditambahkan
+  CheckCircle2,
+  Camera, // <-- Ditambahkan Ikon Kamera
 } from "lucide-react";
 import { WorkPermitFormContext } from "../layout";
 
@@ -266,7 +267,6 @@ export default function TabWorkPermit() {
     } = formData;
 
     // Validasi field wajib.
-    // ✅ PERUBAHAN: Jika ada existingKtp (berarti lagi revisi), maka fileKtp tidak wajib
     if (
       !pekerjaanId ||
       !lokasi ||
@@ -605,20 +605,42 @@ export default function TabWorkPermit() {
             <FieldLabel required>
               Upload KTP / Identitas Diri Pekerja
             </FieldLabel>
-            <div className="relative mt-1">
-              <input
-                type="file"
-                name="fileKtp"
-                accept="image/*,application/pdf"
-                onChange={handleFileChange}
-                className="block w-full text-sm text-slate-500 file:mr-4 file:cursor-pointer file:rounded-xl file:border-0 file:bg-[#0F1F3D]/10 file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-[#0F1F3D] hover:file:bg-[#0F1F3D]/20 focus:outline-none"
-              />
-              <p className="mt-2 text-xs text-slate-400">
-                Format yang didukung: JPG, PNG, atau PDF (Maksimal 2MB)
-              </p>
+
+            {/* ✅ PERUBAHAN: Layout fleksibel untuk File Input dan Kamera */}
+            <div className="mt-1 flex flex-col sm:flex-row gap-3">
+              {/* Pilihan 1: File/Gallery Explorer */}
+              <div className="relative flex-1">
+                <input
+                  type="file"
+                  name="fileKtp"
+                  accept="image/*,application/pdf"
+                  onChange={handleFileChange}
+                  className="block w-full text-sm text-slate-500 file:mr-4 file:cursor-pointer file:rounded-xl file:border-0 file:bg-[#0F1F3D]/10 file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-[#0F1F3D] hover:file:bg-[#0F1F3D]/20 focus:outline-none"
+                />
+              </div>
+
+              {/* Pilihan 2: Ambil Foto Bawaan Kamera (Khusus Mobile) */}
+              <div className="relative">
+                <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#0F1F3D]/10 px-4 py-2.5 text-sm font-semibold text-[#0F1F3D] transition hover:bg-[#0F1F3D]/20">
+                  <Camera size={16} />
+                  <span>Ambil Foto</span>
+                  <input
+                    type="file"
+                    name="fileKtp"
+                    accept="image/*"
+                    capture="environment" // <-- Ini yang memicu kamera terbuka secara native
+                    onChange={handleFileChange}
+                    className="hidden" // Disembunyikan agar UI digantikan oleh label di atasnya
+                  />
+                </label>
+              </div>
             </div>
 
-            {/* ✅ PERUBAHAN: Indikator File Berhasil Dipilih atau Menggunakan KTP Lama */}
+            <p className="mt-2 text-xs text-slate-400">
+              Format yang didukung: JPG, PNG, atau PDF (Maksimal 2MB)
+            </p>
+
+            {/* Indikator File Berhasil Dipilih atau Menggunakan KTP Lama */}
             {formData.fileKtp ? (
               <div className="mt-3 flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-green-700">
                 <FileText size={18} />
@@ -634,7 +656,7 @@ export default function TabWorkPermit() {
             ) : formData.existingKtp ? (
               <div className="mt-3 flex items-center gap-2 rounded-xl bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700">
                 <CheckCircle2 size={16} />
-                KTP lama Anda telah tersimpan. Unggah file baru HANYA JIKA Anda
+                KTP lama Anda telah tersimpan. Unggah/foto ulang HANYA JIKA Anda
                 ingin menggantinya.
               </div>
             ) : null}
